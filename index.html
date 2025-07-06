@@ -1,1 +1,73 @@
-html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Experiência Imersiva</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      overflow: hidden;
+    }
+    video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
+    .mensagem {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: red;
+      font-size: 2em;
+      font-family: Arial, sans-serif;
+      display: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+  <video id="video" src="https://alexandre7888.github.io/ontono.exe/InShot_20250705_234210151.mp4" autoplay muted playsinline></video>
+  <div class="mensagem" id="msg">VOCÊ NÃO PODE SAIR!</div>
+
+  <script>
+    const video = document.getElementById("video");
+    const msg = document.getElementById("msg");
+
+    document.body.addEventListener("click", () => {
+      video.requestFullscreen().catch(() => {});
+      video.play();
+
+      // Estimar duração (você pode ajustar se souber o tempo exato)
+      const duracao = 30000; // 30 segundos
+
+      // Vibrar em pulsos
+      if (navigator.vibrate) {
+        const intervalo = setInterval(() => {
+          navigator.vibrate([200, 100, 200]);
+        }, 1000);
+
+        setTimeout(() => {
+          clearInterval(intervalo);
+          navigator.vibrate(0);
+        }, duracao);
+      }
+
+      // Travar botão voltar e forçar popups
+      history.pushState(null, "", location.href);
+      window.onpopstate = () => {
+        history.pushState(null, "", location.href);
+        msg.style.display = "block";
+
+        for (let i = 0; i < 3; i++) {
+          window.open(location.href, "_blank");
+        }
+
+        alert("VOCÊ TENTOU SAIR!");
+      };
+    });
+  </script>
+</body>
+</html>
