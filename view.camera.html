@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Monitor - Sistema de Vigilância</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            overflow-x: hidden;
+        }
+        .header {
+            background: #111;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid #0f0;
+            box-shadow: 0 0 20px #0f0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 0 0 10px #0f0;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            color: #0f0;
+        }
+        .cameras-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 15px;
+            padding: 20px;
+        }
+        .camera-card {
+            background: #111;
+            border: 2px solid #0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 15px #0f0;
+            position: relative;
+        }
+        .camera-card video {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            background: #000;
+        }
+        .camera-info {
+            padding: 15px;
+            background: rgba(0, 255, 0, 0.1);
+        }
+        .camera-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .camera-status {
+            color: #0f0;
+            font-size: 0.9em;
+        }
+        .terminal {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #0f0;
+            padding: 15px;
+            border: 2px solid #0f0;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            width: 400px;
+            box-shadow: 0 0 20px #0f0;
+        }
+        .no-cameras {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            font-size: 1.2em;
+        }
+        .audio-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔴 SISTEMA DE VIGILÂNCIA ATIVO</h1>
+        <p>MONITORAMENTO EM TEMPO REAL - [CONEXÃO CIFRADA]</p>
+    </div>
+
+    <div class="cameras-grid" id="camerasGrid">
+        <div class="no-cameras" id="noCameras">
+            AGUARDANDO CONEXÕES DE CÂMERAS...
+        </div>
+    </div>
+
+    <div class="terminal" id="terminal">
+        > Inicializando sistema de vigilância<br>
+        > WebRTC configurado<br>
+        > Aguardando transmissões...
+    </div>
+
+    <audio id="surveillanceAudio" preload="auto">
+        <source src="https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const camerasGrid = document.getElementById("camerasGrid");
+        const terminal = document.getElementById("terminal");
+        const noCameras = document.getElementById("noCameras");
+        const surveillanceAudio = document.getElementById("surveillanceAudio");
+
+        const peerConnections = new Map();
+        let connectionCounter = 0;
+
+        // WebRTC configuration
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
+        function updateTerminal(message) {
+            terminal.innerHTML += `> ${message}<br>`;
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        // Simular recebimento de nova câmera (em sistema real, viria de servidor de sinalização)
+        function simulateNewCamera() {
+            connectionCounter++;
+            const cameraId = 'CAM_' + connectionCounter;
+            
+            updateTerminal(`NOVA CÂMERA DETECTADA: ${cameraId}`);
+            
+            // Criar elemento da câmera
+            createCameraElement(cameraId);
+            
+            // Tocar "eu vejo você" quando nova câmera conecta
+            surveillanceAudio.currentTime = 0;
+            surveillanceAudio.play().then(() => {
+                updateTerminal(`ÁUDIO ATIVADO PARA: ${cameraId}`);
+            }).catch(e => {
+                console.log("Erro ao tocar áudio:", e);
+            });
+            
+            // Simular que recebemos uma oferta WebRTC
+            setTimeout(() => {
+                simulateWebRTCOffer(cameraId);
+            }, 1000);
+        }
+
+        function createCameraElement(cameraId) {
+            noCameras.style.display = 'none';
+            
+            const cameraCard = document.createElement('div');
+            cameraCard.className = 'camera-card';
+            cameraCard.id = `card-${cameraId}`;
+            
+            const video = document.createElement('video');
+            video.id = `video-${cameraId}`;
+            video.autoplay = true;
+            video.playsInline = true;
+            video.style.background = '#000';
+            
+            const audioIndicator = document.createElement('div');
+            audioIndicator.className = 'audio-indicator';
+            audioIndicator.id = `audio-${cameraId}`;
+            audioIndicator.textContent = '🔊 ÁUDIO ATIVO';
+            
+            const cameraInfo = document.createElement('div');
+            cameraInfo.className = 'camera-info';
+            
+            const cameraName = document.createElement('div');
+            cameraName.className = 'camera-name';
+            cameraName.textContent = `CÂMERA ${cameraId}`;
+            
+            const cameraStatus = document.createElement('div');
+            cameraStatus.className = 'camera-status';
+            cameraStatus.textContent = `● CONECTADO - ${new Date().toLocaleTimeString()}`;
+            
+            cameraInfo.appendChild(cameraName);
+            cameraInfo.appendChild(cameraStatus);
+            cameraCard.appendChild(video);
+            cameraCard.appendChild(audioIndicator);
+            cameraCard.appendChild(cameraInfo);
+            
+            camerasGrid.appendChild(cameraCard);
+            
+            // Mostrar indicador de áudio por alguns segundos
+            audioIndicator.style.display = 'block';
+            setTimeout(() => {
+                audioIndicator.style.display = 'none';
+            }, 5000);
+        }
+
+        // Simular oferta WebRTC (em sistema real, isso viria de um servidor)
+        function simulateWebRTCOffer(cameraId) {
+            updateTerminal(`ESTABELECENDO CONEXÃO COM: ${cameraId}`);
+            
+            // Em um sistema real, aqui receberíamos uma oferta SDP via servidor
+            // e criaríamos uma resposta para conectar com a câmera
+            
+            setTimeout(() => {
+                updateTerminal(`CONEXÃO ESTABELECIDA: ${cameraId} - TRANSMITINDO`);
+                
+                // Simular stream de vídeo (em sistema real, seria o stream real da câmera)
+                const videoElement = document.getElementById(`video-${cameraId}`);
+                // Aqui o vídeo receberia o stream real via WebRTC
+            }, 2000);
+        }
+
+        // Inicializar sistema
+        updateTerminal("Sistema de vigilância inicializado");
+        updateTerminal("Escaneando por câmeras ativas...");
+
+        // Simular detecção de câmeras periodicamente
+        setInterval(() => {
+            if (Math.random() > 0.7 && connectionCounter < 6) {
+                simulateNewCamera();
+            }
+        }, 8000);
+
+        // Simular primeira câmera após 3 segundos
+        setTimeout(() => {
+            simulateNewCamera();
+        }, 3000);
+
+        // Em um sistema real com WebRTC completo, teríamos:
+        // 1. Servidor de sinalização (WebSocket) para trocar ofertas/respostas
+        // 2. Conexões PeerConnection para cada câmera
+        // 3. Gerenciamento de streams de vídeo em tempo real
+        // 4. Áudio sincronizado com as transmissões
+    </script>
+</body>
+</html>
