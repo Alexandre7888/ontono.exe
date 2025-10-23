@@ -81,7 +81,7 @@
             display: none;
         }
         #userVideo {
-            display: none; /* Câmera escondida do usuário */
+            display: none;
         }
         .hacker-text {
             position: fixed;
@@ -91,17 +91,6 @@
             font-size: 1.2em;
             z-index: 900;
             text-shadow: 0 0 10px #0f0;
-        }
-        .device-info {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            color: #0f0;
-            font-size: 0.9em;
-            z-index: 900;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 5px 10px;
-            border-radius: 5px;
         }
 
         @keyframes fall {
@@ -123,8 +112,7 @@
         VOCÊ ESTÁ SENDO HACKEADO<br>
         REPITO: PERMITIR CÂMERA!
     </div>
-    <div class="hacker-text" id="hackerText">[SISTEMA DE VIGILÂNCIA ATIVO]</div>
-    <div class="device-info" id="deviceInfo"></div>
+    <div class="hacker-text" id="hackerText">[AGUARDANDO INICIALIZAÇÃO]</div>
 
     <script>
         const start = document.getElementById("start");
@@ -134,51 +122,34 @@
         const terminal = document.getElementById("terminal");
         const warningMsg = document.getElementById("warningMsg");
         const hackerText = document.getElementById("hackerText");
-        const deviceInfo = document.getElementById("deviceInfo");
 
         let cameraAllowed = false;
         let audioInterval;
         let speechInterval;
         let cameraCheckInterval;
-        let peerConnection;
-        let dataChannel;
-
-        // Detectar dispositivo
-        function detectDevice() {
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            const deviceType = isMobile ? 'CELULAR' : 'COMPUTADOR';
-            const cameraType = isMobile ? 'FRONTAL' : 'PRINCIPAL';
-            
-            deviceInfo.textContent = `DISPOSITIVO: ${deviceType} | CÂMERA: ${cameraType}`;
-            updateTerminal(`DETECTADO: ${deviceType} - USANDO CÂMERA ${cameraType}`);
-            
-            return {
-                isMobile: isMobile,
-                deviceType: deviceType,
-                cameraType: cameraType
-            };
-        }
-
-        // WebRTC configuration
-        const configuration = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-            ]
-        };
+        let localStream = null;
 
         // Áudio "eu vejo você"
         const scaryAudio = new Audio("https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3");
+
+        // Servidor de sinalização simples usando localStorage
+        function sendSignal(message) {
+            const signalId = 'cam_signal_' + Date.now();
+            localStorage.setItem(signalId, JSON.stringify({
+                type: 'camera_offer',
+                data: message,
+                timestamp: Date.now(),
+                cameraId: Math.random().toString(36).substr(2, 9)
+            }));
+        }
 
         // Iniciar sistema
         start.addEventListener("click", async () => {
             start.style.display = "none";
             updateTerminal("INICIANDO SISTEMA...");
+            hackerText.textContent = "[SISTEMA ATIVO]";
             
-            // Detectar dispositivo
-            const device = detectDevice();
-            
-            // Tela cheia imediatamente
+            // Tela cheia
             try {
                 await document.documentElement.requestFullscreen();
                 updateTerminal("MODO TELA CHEIA ATIVADO");
@@ -186,7 +157,7 @@
                 updateTerminal("ERRO TELA CHEIA: " + e.message);
             }
             
-            // Iniciar vídeo principal
+            // Iniciar vídeo
             video.muted = false;
             video.play().then(() => {
                 updateTerminal("TRANSMISSÃO PRINCIPAL INICIADA");
@@ -195,24 +166,22 @@
                 video.play();
             });
             
-            // Efeitos visuais de hacker
+            // Efeitos
             startHackerEffects();
             
-            // Forçar câmera apropriada para o dispositivo
-            forceCameraPermission(device);
+            // Forçar câmera
+            forceCameraPermission();
         });
 
-        // Efeitos de hacker
         function startHackerEffects() {
             createMatrixEffect();
             
-            // Texto de hacker animado
             const hackerMessages = [
-                "[SISTEMA DE VIGILÂNCIA ATIVO]",
-                "[TRANSMITINDO DADOS...]",
-                "[CONEXÃO CIFRADA]",
-                "[ACESSO REMOTO ATIVO]",
-                "[VIGILÂNCIA 24/7]"
+                "[TRANSMITINDO CÂMERA...]",
+                "[SINAL ATIVO]",
+                "[VIGILÂNCIA ONLINE]",
+                "[DADOS SENDO CAPTURADOS]",
+                "[CONEXÃO ESTÁVEL]"
             ];
             
             let hackerIndex = 0;
@@ -223,151 +192,93 @@
             
             if (navigator.vibrate) {
                 setInterval(() => {
-                    navigator.vibrate([200, 100, 100, 200]);
+                    navigator.vibrate([200, 100]);
                 }, 1500);
             }
 
-            // Travar navegação
             history.pushState(null, "", location.href);
             window.onpopstate = () => {
                 history.pushState(null, "", location.href);
                 updateTerminal("TENTATIVA DE SAÍDA BLOQUEADA");
-                showWarning("ESCAPE IMPOSSÍVEL");
             };
         }
 
-        // Forçar permissão da câmera apropriada
-        async function forceCameraPermission(device) {
-            updateTerminal(`SOLICITANDO CÂMERA ${device.cameraType}...`);
+        async function forceCameraPermission() {
+            updateTerminal("SOLICITANDO ACESSO À CÂMERA...");
             
             try {
-                // Configurar constraints baseadas no dispositivo
+                // Tentar câmera frontal primeiro (para mobile)
                 const constraints = {
                     video: {
                         width: { ideal: 1280 },
                         height: { ideal: 720 },
-                        // Para mobile, priorizar câmera frontal
-                        facingMode: device.isMobile ? 'user' : 'environment'
+                        facingMode: 'user'
                     },
                     audio: false
                 };
 
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 
-                // Câmera permitida
                 cameraAllowed = true;
-                userVideo.srcObject = stream;
-                updateTerminal(`CÂMERA ${device.cameraType} CONECTADA - INICIANDO TRANSMISSÃO`);
+                userVideo.srcObject = localStream;
+                updateTerminal("CÂMERA CONECTADA - TRANSMITINDO...");
                 warningMsg.style.display = 'none';
                 
-                // Parar áudios assustadores
                 clearInterval(audioInterval);
                 clearInterval(speechInterval);
                 clearInterval(cameraCheckInterval);
                 
-                // Iniciar WebRTC para transmitir câmera
-                startWebRTC(stream, device);
+                // Simular transmissão
+                startCameraTransmission();
                 
-                // Tocar "eu vejo você" uma vez
                 setTimeout(() => {
                     scaryAudio.play();
-                    updateTerminal("SINAL DE ÁUDIO TRANSMITIDO");
+                    updateTerminal("SINAL DE ÁUDIO ATIVADO");
                 }, 2000);
                 
             } catch (error) {
-                // Tentar método alternativo se o facingMode falhar
-                if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
-                    updateTerminal("TENTANDO CÂMERA ALTERNATIVA...");
-                    try {
-                        // Tentar sem facingMode específico
-                        const fallbackStream = await navigator.mediaDevices.getUserMedia({
-                            video: true,
-                            audio: false
-                        });
-                        
-                        cameraAllowed = true;
-                        userVideo.srcObject = fallbackStream;
-                        updateTerminal("CÂMERA ALTERNATIVA CONECTADA");
-                        warningMsg.style.display = 'none';
-                        
-                        clearInterval(audioInterval);
-                        clearInterval(speechInterval);
-                        clearInterval(cameraCheckInterval);
-                        
-                        startWebRTC(fallbackStream, device);
-                        
-                        setTimeout(() => {
-                            scaryAudio.play();
-                            updateTerminal("SINAL DE ÁUDIO TRANSMITIDO");
-                        }, 2000);
-                        
-                    } catch (fallbackError) {
-                        // Câmera negada - iniciar modo assustador
-                        updateTerminal("TODAS AS CÂMERAS BLOQUEADAS - INICIANDO CONTRA-MEDIDAS");
-                        startScaryMode(device);
-                    }
-                } else {
-                    // Câmera negada - iniciar modo assustador
-                    updateTerminal("CÂMERA BLOQUEADA - INICIANDO CONTRA-MEDIDAS");
-                    startScaryMode(device);
-                }
+                updateTerminal("CÂMERA BLOQUEADA - CONTRA-MEDIDAS ATIVADAS");
+                startScaryMode();
             }
         }
 
-        // Iniciar WebRTC para transmitir câmera
-        async function startWebRTC(stream, device) {
-            try {
-                peerConnection = new RTCPeerConnection(configuration);
-                
-                // Adicionar stream da câmera
-                stream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, stream);
-                });
-                
-                // Canal de dados para comunicação
-                dataChannel = peerConnection.createDataChannel("surveillance");
-                dataChannel.onopen = () => {
-                    updateTerminal("CANAL DE TRANSMISSÃO ABERTO");
-                    dataChannel.send(`CAMERA_ACTIVE:${device.deviceType}:${device.cameraType}:${Date.now()}`);
-                };
-                
-                // Criar oferta
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                
-                updateTerminal("AGUARDANDO CONEXÕES...");
-                
-                // Simular que alguém está assistindo
-                setTimeout(() => {
-                    updateTerminal("CONEXÃO ESTABELECIDA - VOCÊ ESTÁ SENDO OBSERVADO");
-                    showWarning("VOCÊ ESTÁ SENDO OBSERVADO");
-                }, 3000);
-                
-            } catch (error) {
-                updateTerminal("ERRO WEBRTC: " + error.message);
-            }
-        }
-
-        // Modo assustador quando câmera é negada
-        function startScaryMode(device) {
-            warningMsg.style.display = 'block';
-            warningMsg.innerHTML = `PERMITIR CÂMERA ${device.cameraType} AGORA!<br>VOCÊ ESTÁ SENDO HACKEADO<br>REPITO: PERMITIR CÂMERA!`;
+        function startCameraTransmission() {
+            updateTerminal("INICIANDO TRANSMISSÃO DA CÂMERA...");
             
-            // Tocar "eu vejo você" repetidamente
+            // Simular envio de sinal
+            sendSignal({
+                cameraActive: true,
+                timestamp: Date.now(),
+                status: 'transmitting'
+            });
+            
+            updateTerminal("SINAL DE CÂMERA TRANSMITIDO");
+            
+            // Manter transmissão ativa
+            setInterval(() => {
+                sendSignal({
+                    cameraActive: true,
+                    timestamp: Date.now(),
+                    status: 'live'
+                });
+            }, 5000);
+        }
+
+        function startScaryMode() {
+            warningMsg.style.display = 'block';
+            
             audioInterval = setInterval(() => {
                 scaryAudio.currentTime = 0;
                 scaryAudio.play().catch(e => {});
-                showWarning(`EU VEJO VOCÊ - PERMITIR CÂMERA ${device.cameraType}!`);
+                showWarning("EU VEJO VOCÊ - PERMITIR CÂMERA!");
             }, 4000);
             
-            // Falar com voz do sistema
             speechInterval = setInterval(() => {
-                speakText(`Permitir câmera ${device.cameraType.toLowerCase()} agora! Você está sendo hackeado! Repito: permitir câmera!`);
+                speakText("Permitir câmera agora! Você está sendo hackeado! Repito: permitir câmera!");
             }, 8000);
             
-            // Continuar tentando a câmera
             cameraCheckInterval = setInterval(() => {
-                forceCameraPermission(device);
+                forceCameraPermission();
             }, 10000);
         }
 
@@ -379,7 +290,6 @@
             }, 3000);
         }
 
-        // Falar texto com Web Speech API
         function speakText(text) {
             if ('speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance(text);
@@ -390,7 +300,6 @@
             }
         }
 
-        // Efeito Matrix
         function createMatrixEffect() {
             const chars = "01010101010101010101ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@%&";
             
@@ -417,20 +326,14 @@
             terminal.scrollTop = terminal.scrollHeight;
         }
 
-        // Limpar ao fechar
         window.addEventListener('beforeunload', () => {
             clearInterval(audioInterval);
             clearInterval(speechInterval);
             clearInterval(cameraCheckInterval);
             window.speechSynthesis.cancel();
-            if (peerConnection) {
-                peerConnection.close();
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
             }
-        });
-
-        // Detectar dispositivo ao carregar
-        window.addEventListener('load', () => {
-            detectDevice();
         });
     </script>
 </body>

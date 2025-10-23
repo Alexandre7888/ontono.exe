@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Monitor - Sistema de Vigilância</title>
+    <title>Monitor de Vigilância</title>
     <style>
         html, body {
             margin: 0;
@@ -18,21 +18,23 @@
             text-align: center;
             border-bottom: 2px solid #0f0;
             box-shadow: 0 0 20px #0f0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
         }
         .header h1 {
             margin: 0;
-            font-size: 2.5em;
+            font-size: 2em;
             text-shadow: 0 0 10px #0f0;
         }
-        .header p {
-            margin: 10px 0 0 0;
-            color: #0f0;
-        }
-        .cameras-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 15px;
+        .cameras-container {
+            margin-top: 120px;
             padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
         }
         .camera-card {
             background: #111;
@@ -44,7 +46,7 @@
         }
         .camera-card video {
             width: 100%;
-            height: 300px;
+            height: 250px;
             object-fit: cover;
             background: #000;
         }
@@ -53,7 +55,7 @@
             background: rgba(0, 255, 0, 0.1);
         }
         .camera-name {
-            font-size: 1.2em;
+            font-size: 1.1em;
             font-weight: bold;
             margin-bottom: 5px;
         }
@@ -74,14 +76,16 @@
             overflow-y: auto;
             width: 400px;
             box-shadow: 0 0 20px #0f0;
+            z-index: 1000;
         }
         .no-cameras {
             text-align: center;
             padding: 50px;
             color: #666;
             font-size: 1.2em;
+            grid-column: 1 / -1;
         }
-        .audio-indicator {
+        .audio-alert {
             position: absolute;
             top: 10px;
             right: 10px;
@@ -90,25 +94,43 @@
             padding: 5px 10px;
             border-radius: 5px;
             font-size: 0.8em;
+            animation: blink 1s infinite;
             display: none;
+        }
+        .connection-status {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #0f0;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🔴 SISTEMA DE VIGILÂNCIA ATIVO</h1>
-        <p>MONITORAMENTO EM TEMPO REAL - [CONEXÃO CIFRADA]</p>
+        <h1>🔴 SISTEMA DE VIGILÂNCIA - MONITOR ATIVO</h1>
+        <div>Câmeras Conectadas: <span id="camCount">0</span></div>
     </div>
 
-    <div class="cameras-grid" id="camerasGrid">
+    <div class="connection-status" id="connectionStatus">
+        Status: Conectando...
+    </div>
+
+    <div class="cameras-container" id="camerasContainer">
         <div class="no-cameras" id="noCameras">
-            AGUARDANDO CONEXÕES DE CÂMERAS...
+            ESCANEANDO REDE... AGUARDANDO CÂMERAS
         </div>
     </div>
 
     <div class="terminal" id="terminal">
-        > Inicializando sistema de vigilância<br>
-        > WebRTC configurado<br>
+        > Sistema de vigilância inicializado<br>
+        > Iniciando conexão WebRTC...<br>
         > Aguardando transmissões...
     </div>
 
@@ -117,132 +139,266 @@
     </audio>
 
     <script>
-        const camerasGrid = document.getElementById("camerasGrid");
+        const camerasContainer = document.getElementById("camerasContainer");
         const terminal = document.getElementById("terminal");
         const noCameras = document.getElementById("noCameras");
+        const camCount = document.getElementById("camCount");
+        const connectionStatus = document.getElementById("connectionStatus");
         const surveillanceAudio = document.getElementById("surveillanceAudio");
 
+        const activeCameras = new Map();
         const peerConnections = new Map();
-        let connectionCounter = 0;
+        let cameraCounter = 0;
+        let ws = null;
 
-        // WebRTC configuration
-        const configuration = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-            ]
-        };
+        // Servidor de sinalização WebSocket (usando serviço público para teste)
+        const WS_SERVER = 'wss://websocket-echo.com/';
 
         function updateTerminal(message) {
-            terminal.innerHTML += `> ${message}<br>`;
+            terminal.innerHTML += `> ${new Date().toLocaleTimeString()} - ${message}<br>`;
             terminal.scrollTop = terminal.scrollHeight;
         }
 
-        // Simular recebimento de nova câmera (em sistema real, viria de servidor de sinalização)
-        function simulateNewCamera() {
-            connectionCounter++;
-            const cameraId = 'CAM_' + connectionCounter;
-            
-            updateTerminal(`NOVA CÂMERA DETECTADA: ${cameraId}`);
-            
-            // Criar elemento da câmera
-            createCameraElement(cameraId);
-            
-            // Tocar "eu vejo você" quando nova câmera conecta
-            surveillanceAudio.currentTime = 0;
-            surveillanceAudio.play().then(() => {
-                updateTerminal(`ÁUDIO ATIVADO PARA: ${cameraId}`);
-            }).catch(e => {
-                console.log("Erro ao tocar áudio:", e);
-            });
-            
-            // Simular que recebemos uma oferta WebRTC
-            setTimeout(() => {
-                simulateWebRTCOffer(cameraId);
-            }, 1000);
+        function updateCameraCount() {
+            camCount.textContent = activeCameras.size;
         }
 
-        function createCameraElement(cameraId) {
-            noCameras.style.display = 'none';
+        function updateConnectionStatus(status, isError = false) {
+            connectionStatus.innerHTML = `Status: <span style="color: ${isError ? '#ff0000' : '#0f0'}">${status}</span>`;
+        }
+
+        // Inicializar WebSocket para sinalização
+        function initWebSocket() {
+            try {
+                ws = new WebSocket(WS_SERVER);
+                
+                ws.onopen = () => {
+                    updateConnectionStatus('CONECTADO');
+                    updateTerminal("WebSocket conectado - Escaneando câmeras...");
+                    
+                    // Enviar mensagem de que é um visualizador
+                    const message = {
+                        type: 'viewer_connected',
+                        timestamp: Date.now(),
+                        id: 'viewer_' + Math.random().toString(36).substr(2, 9)
+                    };
+                    ws.send(JSON.stringify(message));
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleSignalingMessage(data);
+                    } catch (e) {
+                        // Echo do servidor - simular mensagem de câmera
+                        simulateCameraDetection();
+                    }
+                };
+                
+                ws.onerror = (error) => {
+                    updateConnectionStatus('ERRO DE CONEXÃO', true);
+                    updateTerminal("Erro WebSocket - Usando modo simulação");
+                    startSimulationMode();
+                };
+                
+                ws.onclose = () => {
+                    updateConnectionStatus('DESCONECTADO', true);
+                    updateTerminal("Conexão perdida - Reconectando...");
+                    setTimeout(initWebSocket, 3000);
+                };
+                
+            } catch (error) {
+                updateConnectionStatus('ERRO DE CONEXÃO', true);
+                updateTerminal("Falha ao conectar - Iniciando modo simulação");
+                startSimulationMode();
+            }
+        }
+
+        // Modo simulação quando WebSocket falha
+        function startSimulationMode() {
+            updateTerminal("MODO SIMULAÇÃO ATIVADO - Criando câmeras de teste");
             
+            // Criar algumas câmeras simuladas
+            setTimeout(() => {
+                simulateCameraDetection();
+            }, 2000);
+            
+            setTimeout(() => {
+                simulateCameraDetection();
+            }, 5000);
+            
+            setTimeout(() => {
+                simulateCameraDetection();
+            }, 8000);
+            
+            // Continuar simulando novas câmeras
+            setInterval(() => {
+                if (Math.random() > 0.7 && activeCameras.size < 6) {
+                    simulateCameraDetection();
+                }
+            }, 10000);
+        }
+
+        function handleSignalingMessage(data) {
+            if (data.type === 'camera_offline') {
+                removeCamera(data.cameraId);
+            }
+            // Outros tipos de mensagem seriam processados aqui
+        }
+
+        function simulateCameraDetection() {
+            const cameraId = 'cam_' + Math.random().toString(36).substr(2, 9);
+            const cameraNumber = ++cameraCounter;
+            
+            updateTerminal(`CÂMERA ${cameraNumber} DETECTADA: ${cameraId}`);
+            
+            // Criar elemento da câmera
             const cameraCard = document.createElement('div');
             cameraCard.className = 'camera-card';
-            cameraCard.id = `card-${cameraId}`;
+            cameraCard.id = `camera-${cameraId}`;
             
-            const video = document.createElement('video');
-            video.id = `video-${cameraId}`;
-            video.autoplay = true;
-            video.playsInline = true;
-            video.style.background = '#000';
+            // Video element - placeholder
+            const video = document.createElement('div');
+            video.style.width = '100%';
+            video.style.height = '250px';
+            video.style.background = 'linear-gradient(45deg, #000, #111)';
+            video.style.display = 'flex';
+            video.style.alignItems = 'center';
+            video.style.justifyContent = 'center';
+            video.style.color = '#0f0';
+            video.style.fontSize = '1.1em';
+            video.style.textAlign = 'center';
+            video.style.padding = '20px';
+            video.style.boxSizing = 'border-box';
+            video.innerHTML = `
+                <div>
+                    <div style="font-size: 2em; margin-bottom: 10px;">📹</div>
+                    CÂMERA ${cameraNumber} ATIVA<br>
+                    <span style="font-size: 0.8em; color: #0a0;">TRANSMITINDO EM TEMPO REAL</span>
+                </div>
+            `;
             
-            const audioIndicator = document.createElement('div');
-            audioIndicator.className = 'audio-indicator';
-            audioIndicator.id = `audio-${cameraId}`;
-            audioIndicator.textContent = '🔊 ÁUDIO ATIVO';
+            const audioAlert = document.createElement('div');
+            audioAlert.className = 'audio-alert';
+            audioAlert.id = `audio-${cameraId}`;
+            audioAlert.textContent = '🔊 ÁUDIO DETECTADO';
             
             const cameraInfo = document.createElement('div');
             cameraInfo.className = 'camera-info';
             
             const cameraName = document.createElement('div');
             cameraName.className = 'camera-name';
-            cameraName.textContent = `CÂMERA ${cameraId}`;
+            cameraName.textContent = `CÂMERA #${cameraNumber} - ${cameraId.substr(0, 8).toUpperCase()}`;
             
             const cameraStatus = document.createElement('div');
             cameraStatus.className = 'camera-status';
-            cameraStatus.textContent = `● CONECTADO - ${new Date().toLocaleTimeString()}`;
+            cameraStatus.textContent = `● TRANSMISSÃO ATIVA - ${new Date().toLocaleTimeString()}`;
+            cameraStatus.id = `status-${cameraId}`;
             
             cameraInfo.appendChild(cameraName);
             cameraInfo.appendChild(cameraStatus);
             cameraCard.appendChild(video);
-            cameraCard.appendChild(audioIndicator);
+            cameraCard.appendChild(audioAlert);
             cameraCard.appendChild(cameraInfo);
             
-            camerasGrid.appendChild(cameraCard);
+            camerasContainer.appendChild(cameraCard);
+            noCameras.style.display = 'none';
             
-            // Mostrar indicador de áudio por alguns segundos
-            audioIndicator.style.display = 'block';
+            // Adicionar ao mapa de câmeras ativas
+            activeCameras.set(cameraId, {
+                element: cameraCard,
+                lastSeen: Date.now(),
+                number: cameraNumber,
+                status: 'active'
+            });
+            
+            updateCameraCount();
+            
+            // Tocar áudio quando nova câmera é detectada
+            playDetectionAudio();
+            
+            // Mostrar alerta de áudio
+            audioAlert.style.display = 'block';
             setTimeout(() => {
-                audioIndicator.style.display = 'none';
+                audioAlert.style.display = 'none';
             }, 5000);
+            
+            // Simular atividade periódica da câmera
+            const activityInterval = setInterval(() => {
+                if (activeCameras.has(cameraId)) {
+                    const camera = activeCameras.get(cameraId);
+                    camera.lastSeen = Date.now();
+                    
+                    const statusElement = document.getElementById(`status-${cameraId}`);
+                    if (statusElement) {
+                        statusElement.textContent = `● TRANSMISSÃO ATIVA - ${new Date().toLocaleTimeString()}`;
+                    }
+                } else {
+                    clearInterval(activityInterval);
+                }
+            }, 3000);
+            
+            // Simular desconexão eventual
+            setTimeout(() => {
+                if (Math.random() > 0.5 && activeCameras.has(cameraId)) {
+                    removeCamera(cameraId);
+                }
+            }, 30000 + Math.random() * 60000);
         }
 
-        // Simular oferta WebRTC (em sistema real, isso viria de um servidor)
-        function simulateWebRTCOffer(cameraId) {
-            updateTerminal(`ESTABELECENDO CONEXÃO COM: ${cameraId}`);
+        function playDetectionAudio() {
+            surveillanceAudio.currentTime = 0;
+            surveillanceAudio.play().then(() => {
+                updateTerminal("ÁUDIO DE DETECÇÃO ATIVADO - 'EU VEJO VOCÊ'");
+            }).catch(e => {
+                console.log("Erro ao tocar áudio:", e);
+            });
+        }
+
+        function removeCamera(cameraId) {
+            if (activeCameras.has(cameraId)) {
+                const camera = activeCameras.get(cameraId);
+                const cameraElement = document.getElementById(`camera-${cameraId}`);
+                if (cameraElement) {
+                    cameraElement.remove();
+                }
+                activeCameras.delete(cameraId);
+                updateTerminal(`CÂMERA ${camera.number} DESCONECTADA`);
+                updateCameraCount();
+            }
             
-            // Em um sistema real, aqui receberíamos uma oferta SDP via servidor
-            // e criaríamos uma resposta para conectar com a câmera
-            
-            setTimeout(() => {
-                updateTerminal(`CONEXÃO ESTABELECIDA: ${cameraId} - TRANSMITINDO`);
-                
-                // Simular stream de vídeo (em sistema real, seria o stream real da câmera)
-                const videoElement = document.getElementById(`video-${cameraId}`);
-                // Aqui o vídeo receberia o stream real via WebRTC
-            }, 2000);
+            if (activeCameras.size === 0) {
+                noCameras.style.display = 'block';
+            }
+        }
+
+        // Limpar câmeras inativas
+        function cleanupInactiveCameras() {
+            const now = Date.now();
+            activeCameras.forEach((camera, cameraId) => {
+                if (now - camera.lastSeen > 30000) { // 30 segundos sem atividade
+                    removeCamera(cameraId);
+                }
+            });
         }
 
         // Inicializar sistema
-        updateTerminal("Sistema de vigilância inicializado");
-        updateTerminal("Escaneando por câmeras ativas...");
+        updateTerminal("Iniciando sistema de vigilância...");
+        updateTerminal("Conectando ao servidor de sinalização...");
 
-        // Simular detecção de câmeras periodicamente
-        setInterval(() => {
-            if (Math.random() > 0.7 && connectionCounter < 6) {
-                simulateNewCamera();
-            }
-        }, 8000);
+        // Iniciar WebSocket
+        initWebSocket();
 
-        // Simular primeira câmera após 3 segundos
+        // Limpar câmeras inativas a cada 10 segundos
+        setInterval(cleanupInactiveCameras, 10000);
+
+        // Adicionar primeira câmera após 3 segundos (para demonstração)
         setTimeout(() => {
-            simulateNewCamera();
-        }, 3000);
-
-        // Em um sistema real com WebRTC completo, teríamos:
-        // 1. Servidor de sinalização (WebSocket) para trocar ofertas/respostas
-        // 2. Conexões PeerConnection para cada câmera
-        // 3. Gerenciamento de streams de vídeo em tempo real
-        // 4. Áudio sincronizado com as transmissões
+            if (activeCameras.size === 0) {
+                updateTerminal("Nenhuma câmera real detectada - Ativando modo demonstração");
+                simulateCameraDetection();
+            }
+        }, 5000);
     </script>
 </body>
 </html>
