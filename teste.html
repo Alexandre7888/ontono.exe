@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometria Real - WebAuthn</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+
+        .phone {
+            width: 320px;
+            height: 640px;
+            background: #111;
+            border-radius: 40px;
+            border: 6px solid #333;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .screen {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            position: relative;
+        }
+
+        .status-bar {
+            height: 44px;
+            background: transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .app-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            border-radius: 20px;
+            margin: 40px auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+
+        .biometric-prompt {
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .biometric-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .biometric-button {
+            width: 200px;
+            height: 50px;
+            background: #007AFF;
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 20px auto;
+            cursor: pointer;
+            display: block;
+        }
+
+        .biometric-button:active {
+            background: #0056CC;
+        }
+
+        .message {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .success {
+            background: rgba(52, 199, 89, 0.2);
+            border: 1px solid #34C759;
+            color: #34C759;
+        }
+
+        .error {
+            background: rgba(255, 59, 48, 0.2);
+            border: 1px solid #FF3B30;
+            color: #FF3B30;
+        }
+
+        .info {
+            background: rgba(0, 122, 255, 0.2);
+            border: 1px solid #007AFF;
+            color: #007AFF;
+        }
+
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid #007AFF;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .home-indicator {
+            width: 134px;
+            height: 5px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 3px;
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="phone">
+        <div class="screen">
+            <div class="status-bar">
+                <span>9:41</span>
+                <span>📶 100% 🔋</span>
+            </div>
+            
+            <div class="content">
+                <div class="app-icon">🏦</div>
+                <h2>Banco Digital</h2>
+                <p>Autenticação Segura</p>
+
+                <div class="biometric-prompt">
+                    <div class="biometric-icon" id="biometricIcon">👆</div>
+                    <h3 id="promptTitle">Biometria Requerida</h3>
+                    <p id="promptText">Use sua digital, Face ID ou senha do dispositivo</p>
+                    
+                    <button class="biometric-button" onclick="startRealBiometric()" id="authButton">
+                        Autenticar
+                    </button>
+                </div>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Processando...</p>
+                </div>
+
+                <div class="message" id="message"></div>
+
+                <div class="home-indicator"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Elementos DOM
+        const biometricIcon = document.getElementById('biometricIcon');
+        const promptTitle = document.getElementById('promptTitle');
+        const promptText = document.getElementById('promptText');
+        const authButton = document.getElementById('authButton');
+        const loading = document.getElementById('loading');
+        const message = document.getElementById('message');
+
+        // Detectar tipo de biometria disponível
+        async function detectBiometricType() {
+            if (!window.PublicKeyCredential) {
+                showMessage('Biometria não suportada neste navegador', 'error');
+                return;
+            }
+
+            try {
+                // Verificar disponibilidade
+                const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                const conditional = await PublicKeyCredential.isConditionalMediationAvailable();
+
+                if (available) {
+                    // iOS - Face ID/Touch ID
+                    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                        biometricIcon.textContent = '👁️';
+                        promptTitle.textContent = 'Face ID';
+                        promptText.textContent = 'Use o Face ID ou Touch ID para continuar';
+                    }
+                    // Android - Biometria
+                    else if (/Android/.test(navigator.userAgent)) {
+                        biometricIcon.textContent = '👆';
+                        promptTitle.textContent = 'Verificação de Digital';
+                        promptText.textContent = 'Toque no sensor de digital';
+                    }
+                    // Desktop
+                    else {
+                        biometricIcon.textContent = '🔐';
+                        promptTitle.textContent = 'Verificação do Dispositivo';
+                        promptText.textContent = 'Use a senha do Windows Hello ou Touch ID';
+                    }
+                } else {
+                    showMessage('Biometria não configurada no dispositivo', 'error');
+                }
+            } catch (error) {
+                console.error('Erro na detecção:', error);
+                showMessage('Erro ao verificar biometria', 'error');
+            }
+        }
+
+        // Biometria REAL usando WebAuthn
+        async function startRealBiometric() {
+            showLoading(true);
+            clearMessage();
+
+            try {
+                // Verificar suporte
+                if (!window.PublicKeyCredential) {
+                    throw new Error('WebAuthn não suportado');
+                }
+
+                // Para iOS/Android - Tentar autenticação condicional
+                const isCMA = await PublicKeyCredential.isConditionalMediationAvailable();
+                
+                if (isCMA) {
+                    await authenticateWithConditionalMediation();
+                } else {
+                    await authenticateWithTraditional();
+                }
+
+            } catch (error) {
+                console.error('Erro na biometria:', error);
+                handleBiometricError(error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Autenticação com mediação condicional (mais moderna)
+        async function authenticateWithConditionalMediation() {
+            try {
+                const options = {
+                    challenge: new Uint8Array(32),
+                    allowCredentials: [],
+                    userVerification: 'required',
+                    timeout: 60000
+                };
+
+                const credential = await navigator.credentials.get({
+                    publicKey: options,
+                    mediation: 'conditional'
+                });
+
+                if (credential) {
+                    showMessage('✅ Autenticação biométrica REAL bem-sucedida!', 'success');
+                    simulateAppAccess();
+                }
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        // Autenticação tradicional
+        async function authenticateWithTraditional() {
+            try {
+                const options = {
+                    challenge: new Uint8Array(32),
+                    allowCredentials: [],
+                    userVerification: 'required',
+                    timeout: 60000
+                };
+
+                const credential = await navigator.credentials.get({
+                    publicKey: options
+                });
+
+                if (credential) {
+                    showMessage('✅ Autenticação REAL confirmada!', 'success');
+                    simulateAppAccess();
+                }
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        // Tratar erros específicos
+        function handleBiometricError(error) {
+            let errorMessage = 'Falha na autenticação';
+
+            switch (error.name) {
+                case 'NotAllowedError':
+                    errorMessage = 'Autenticação cancelada pelo usuário';
+                    break;
+                case 'SecurityError':
+                    errorMessage = 'Erro de segurança. Use HTTPS para biometria real';
+                    break;
+                case 'NotSupportedError':
+                    errorMessage = 'Biometria não suportada neste dispositivo';
+                    break;
+                case 'InvalidStateError':
+                    errorMessage = 'Credencial já registrada';
+                    break;
+                default:
+                    errorMessage = `Erro: ${error.message || 'Tente novamente'}`;
+            }
+
+            showMessage(`❌ ${errorMessage}`, 'error');
+        }
+
+        // Simular acesso ao app (após sucesso)
+        function simulateAppAccess() {
+            setTimeout(() => {
+                authButton.textContent = 'Acessar Novamente';
+                showMessage('🎉 Acesso concedido ao Banco Digital!', 'success');
+                
+                // Simular navegação para o app
+                setTimeout(() => {
+                    alert('Bem-vindo ao Banco Digital!\n\nSaldo: R$ 15.247,89\n💳 Cartão: •••• 4455');
+                    resetUI();
+                }, 1500);
+            }, 1000);
+        }
+
+        // UI helpers
+        function showLoading(show) {
+            loading.style.display = show ? 'block' : 'none';
+            authButton.disabled = show;
+        }
+
+        function showMessage(text, type) {
+            message.textContent = text;
+            message.className = `message ${type}`;
+        }
+
+        function clearMessage() {
+            message.className = 'message';
+            message.textContent = '';
+        }
+
+        function resetUI() {
+            setTimeout(() => {
+                clearMessage();
+                authButton.textContent = 'Autenticar';
+            }, 3000);
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar se está em HTTPS (necessário para biometria real)
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                showMessage('⚠️ Para biometria REAL, acesse via HTTPS', 'info');
+            }
+
+            detectBiometricType();
+        });
+
+        // Tentar autenticação automática em alguns dispositivos
+        if (PublicKeyCredential && PublicKeyCredential.isConditionalMediationAvailable) {
+            PublicKeyCredential.isConditionalMediationAvailable().then(available => {
+                if (available) {
+                    // Alguns dispositivos permitem autenticação automática
+                    promptText.textContent += '\n(Tentativa automática habilitada)';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
