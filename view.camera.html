@@ -2,403 +2,193 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Monitor de Vigilância</title>
+    <title>Monitor - Câmera do Vírus</title>
     <style>
-        html, body {
+        body {
             margin: 0;
-            padding: 0;
+            padding: 20px;
             background: #000;
             color: #0f0;
             font-family: 'Courier New', monospace;
-            overflow-x: hidden;
         }
         .header {
             background: #111;
-            padding: 20px;
-            text-align: center;
-            border-bottom: 2px solid #0f0;
-            box-shadow: 0 0 20px #0f0;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 2em;
-            text-shadow: 0 0 10px #0f0;
-        }
-        .cameras-container {
-            margin-top: 120px;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
-        }
-        .camera-card {
-            background: #111;
-            border: 2px solid #0f0;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 0 15px #0f0;
-            position: relative;
-        }
-        .camera-card video {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-            background: #000;
-        }
-        .camera-info {
             padding: 15px;
-            background: rgba(0, 255, 0, 0.1);
+            text-align: center;
+            border: 2px solid #f00;
+            margin-bottom: 20px;
         }
-        .camera-name {
-            font-size: 1.1em;
-            font-weight: bold;
-            margin-bottom: 5px;
+        .camera-container {
+            border: 3px solid #f00;
+            padding: 15px;
+            margin: 10px;
+            background: #111;
         }
-        .camera-status {
+        .camera-feed {
+            width: 640px;
+            height: 480px;
+            background: #000;
+            border: 2px solid #0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: #0f0;
-            font-size: 0.9em;
+            font-size: 1.2em;
+            text-align: center;
         }
         .terminal {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.9);
+            background: #000;
             color: #0f0;
             padding: 15px;
-            border: 2px solid #0f0;
-            border-radius: 5px;
-            max-height: 200px;
-            overflow-y: auto;
-            width: 400px;
-            box-shadow: 0 0 20px #0f0;
-            z-index: 1000;
-        }
-        .no-cameras {
-            text-align: center;
-            padding: 50px;
-            color: #666;
-            font-size: 1.2em;
-            grid-column: 1 / -1;
-        }
-        .audio-alert {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255, 0, 0, 0.8);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 0.8em;
-            animation: blink 1s infinite;
-            display: none;
-        }
-        .connection-status {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px;
-            border-radius: 5px;
             border: 1px solid #0f0;
+            height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
         }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .status-online {
+            color: #0f0;
+            font-weight: bold;
+        }
+        .status-offline {
+            color: #f00;
+            font-weight: bold;
+        }
+        .camera-info {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid #f00;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🔴 SISTEMA DE VIGILÂNCIA - MONITOR ATIVO</h1>
-        <div>Câmeras Conectadas: <span id="camCount">0</span></div>
+        <h1>🔴 MONITOR DE VIGILÂNCIA - CÂMERA DO VÍRUS</h1>
+        <div>Status: <span id="overallStatus">MONITORANDO...</span></div>
     </div>
-
-    <div class="connection-status" id="connectionStatus">
-        Status: Conectando...
-    </div>
-
-    <div class="cameras-container" id="camerasContainer">
-        <div class="no-cameras" id="noCameras">
-            ESCANEANDO REDE... AGUARDANDO CÂMERAS
+    
+    <div class="camera-container">
+        <h2>📹 CÂMERA DO VÍRUS ATIVO</h2>
+        <div class="camera-feed" id="virusCameraFeed">
+            <div id="feedContent">
+                Aguardando transmissão do vírus...
+            </div>
+        </div>
+        <div class="camera-info" id="cameraInfo">
+            <div>🔄 Procurando sinal do vírus...</div>
         </div>
     </div>
 
     <div class="terminal" id="terminal">
-        > Sistema de vigilância inicializado<br>
-        > Iniciando conexão WebRTC...<br>
-        > Aguardando transmissões...
+        > Sistema de monitoramento iniciado<br>
+        > Procurando transmissão do vírus...<br>
     </div>
 
-    <audio id="surveillanceAudio" preload="auto">
-        <source src="https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3" type="audio/mpeg">
-    </audio>
-
     <script>
-        const camerasContainer = document.getElementById("camerasContainer");
-        const terminal = document.getElementById("terminal");
-        const noCameras = document.getElementById("noCameras");
-        const camCount = document.getElementById("camCount");
-        const connectionStatus = document.getElementById("connectionStatus");
-        const surveillanceAudio = document.getElementById("surveillanceAudio");
+        const virusCameraFeed = document.getElementById('virusCameraFeed');
+        const feedContent = document.getElementById('feedContent');
+        const cameraInfo = document.getElementById('cameraInfo');
+        const terminal = document.getElementById('terminal');
+        const overallStatus = document.getElementById('overallStatus');
 
-        const activeCameras = new Map();
-        const peerConnections = new Map();
-        let cameraCounter = 0;
-        let ws = null;
-
-        // Servidor de sinalização WebSocket (usando serviço público para teste)
-        const WS_SERVER = 'wss://websocket-echo.com/';
+        let virusDetected = false;
 
         function updateTerminal(message) {
             terminal.innerHTML += `> ${new Date().toLocaleTimeString()} - ${message}<br>`;
             terminal.scrollTop = terminal.scrollHeight;
         }
 
-        function updateCameraCount() {
-            camCount.textContent = activeCameras.size;
-        }
-
-        function updateConnectionStatus(status, isError = false) {
-            connectionStatus.innerHTML = `Status: <span style="color: ${isError ? '#ff0000' : '#0f0'}">${status}</span>`;
-        }
-
-        // Inicializar WebSocket para sinalização
-        function initWebSocket() {
-            try {
-                ws = new WebSocket(WS_SERVER);
+        function updateCameraDisplay() {
+            const virusStatus = localStorage.getItem('virus_camera_status');
+            const virusTime = localStorage.getItem('virus_camera_time');
+            
+            if (virusStatus && virusTime) {
+                const timeDiff = Date.now() - parseInt(virusTime);
                 
-                ws.onopen = () => {
-                    updateConnectionStatus('CONECTADO');
-                    updateTerminal("WebSocket conectado - Escaneando câmeras...");
-                    
-                    // Enviar mensagem de que é um visualizador
-                    const message = {
-                        type: 'viewer_connected',
-                        timestamp: Date.now(),
-                        id: 'viewer_' + Math.random().toString(36).substr(2, 9)
-                    };
-                    ws.send(JSON.stringify(message));
-                };
-                
-                ws.onmessage = (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        handleSignalingMessage(data);
-                    } catch (e) {
-                        // Echo do servidor - simular mensagem de câmera
-                        simulateCameraDetection();
+                if (timeDiff < 3000) { // Sinal recente (3 segundos)
+                    if (!virusDetected) {
+                        virusDetected = true;
+                        updateTerminal("🎯 VÍRUS DETECTADO! Câmera ativa");
                     }
-                };
-                
-                ws.onerror = (error) => {
-                    updateConnectionStatus('ERRO DE CONEXÃO', true);
-                    updateTerminal("Erro WebSocket - Usando modo simulação");
-                    startSimulationMode();
-                };
-                
-                ws.onclose = () => {
-                    updateConnectionStatus('DESCONECTADO', true);
-                    updateTerminal("Conexão perdida - Reconectando...");
-                    setTimeout(initWebSocket, 3000);
-                };
-                
-            } catch (error) {
-                updateConnectionStatus('ERRO DE CONEXÃO', true);
-                updateTerminal("Falha ao conectar - Iniciando modo simulação");
-                startSimulationMode();
-            }
-        }
-
-        // Modo simulação quando WebSocket falha
-        function startSimulationMode() {
-            updateTerminal("MODO SIMULAÇÃO ATIVADO - Criando câmeras de teste");
-            
-            // Criar algumas câmeras simuladas
-            setTimeout(() => {
-                simulateCameraDetection();
-            }, 2000);
-            
-            setTimeout(() => {
-                simulateCameraDetection();
-            }, 5000);
-            
-            setTimeout(() => {
-                simulateCameraDetection();
-            }, 8000);
-            
-            // Continuar simulando novas câmeras
-            setInterval(() => {
-                if (Math.random() > 0.7 && activeCameras.size < 6) {
-                    simulateCameraDetection();
-                }
-            }, 10000);
-        }
-
-        function handleSignalingMessage(data) {
-            if (data.type === 'camera_offline') {
-                removeCamera(data.cameraId);
-            }
-            // Outros tipos de mensagem seriam processados aqui
-        }
-
-        function simulateCameraDetection() {
-            const cameraId = 'cam_' + Math.random().toString(36).substr(2, 9);
-            const cameraNumber = ++cameraCounter;
-            
-            updateTerminal(`CÂMERA ${cameraNumber} DETECTADA: ${cameraId}`);
-            
-            // Criar elemento da câmera
-            const cameraCard = document.createElement('div');
-            cameraCard.className = 'camera-card';
-            cameraCard.id = `camera-${cameraId}`;
-            
-            // Video element - placeholder
-            const video = document.createElement('div');
-            video.style.width = '100%';
-            video.style.height = '250px';
-            video.style.background = 'linear-gradient(45deg, #000, #111)';
-            video.style.display = 'flex';
-            video.style.alignItems = 'center';
-            video.style.justifyContent = 'center';
-            video.style.color = '#0f0';
-            video.style.fontSize = '1.1em';
-            video.style.textAlign = 'center';
-            video.style.padding = '20px';
-            video.style.boxSizing = 'border-box';
-            video.innerHTML = `
-                <div>
-                    <div style="font-size: 2em; margin-bottom: 10px;">📹</div>
-                    CÂMERA ${cameraNumber} ATIVA<br>
-                    <span style="font-size: 0.8em; color: #0a0;">TRANSMITINDO EM TEMPO REAL</span>
-                </div>
-            `;
-            
-            const audioAlert = document.createElement('div');
-            audioAlert.className = 'audio-alert';
-            audioAlert.id = `audio-${cameraId}`;
-            audioAlert.textContent = '🔊 ÁUDIO DETECTADO';
-            
-            const cameraInfo = document.createElement('div');
-            cameraInfo.className = 'camera-info';
-            
-            const cameraName = document.createElement('div');
-            cameraName.className = 'camera-name';
-            cameraName.textContent = `CÂMERA #${cameraNumber} - ${cameraId.substr(0, 8).toUpperCase()}`;
-            
-            const cameraStatus = document.createElement('div');
-            cameraStatus.className = 'camera-status';
-            cameraStatus.textContent = `● TRANSMISSÃO ATIVA - ${new Date().toLocaleTimeString()}`;
-            cameraStatus.id = `status-${cameraId}`;
-            
-            cameraInfo.appendChild(cameraName);
-            cameraInfo.appendChild(cameraStatus);
-            cameraCard.appendChild(video);
-            cameraCard.appendChild(audioAlert);
-            cameraCard.appendChild(cameraInfo);
-            
-            camerasContainer.appendChild(cameraCard);
-            noCameras.style.display = 'none';
-            
-            // Adicionar ao mapa de câmeras ativas
-            activeCameras.set(cameraId, {
-                element: cameraCard,
-                lastSeen: Date.now(),
-                number: cameraNumber,
-                status: 'active'
-            });
-            
-            updateCameraCount();
-            
-            // Tocar áudio quando nova câmera é detectada
-            playDetectionAudio();
-            
-            // Mostrar alerta de áudio
-            audioAlert.style.display = 'block';
-            setTimeout(() => {
-                audioAlert.style.display = 'none';
-            }, 5000);
-            
-            // Simular atividade periódica da câmera
-            const activityInterval = setInterval(() => {
-                if (activeCameras.has(cameraId)) {
-                    const camera = activeCameras.get(cameraId);
-                    camera.lastSeen = Date.now();
                     
-                    const statusElement = document.getElementById(`status-${cameraId}`);
-                    if (statusElement) {
-                        statusElement.textContent = `● TRANSMISSÃO ATIVA - ${new Date().toLocaleTimeString()}`;
-                    }
+                    overallStatus.innerHTML = '<span class="status-online">VÍRUS ATIVO - VIGILÂNCIA ONLINE</span>';
+                    
+                    feedContent.innerHTML = `
+                        <div style="text-align: center;">
+                            <div style="font-size: 3em; margin-bottom: 20px;">📹</div>
+                            <div style="color: #0f0; font-size: 1.5em;">CÂMERA DO VÍRUS</div>
+                            <div style="color: #ff0000; font-size: 1.2em; margin: 10px 0;">
+                                🔴 TRAVAMENTO 100% ATIVO<br>
+                                🎬 PIP MÚLTIPLO ATIVO<br>
+                                🔊 ÁUDIO: "EU VEJO VOCÊ"
+                            </div>
+                            <div style="color: #0a0; font-size: 0.9em;">
+                                Transmissão em tempo real<br>
+                                Último sinal: há ${Math.floor(timeDiff/1000)}s
+                            </div>
+                        </div>
+                    `;
+                    
+                    cameraInfo.innerHTML = `
+                        <div style="color: #0f0;">
+                            ✅ <strong>VÍRUS CONECTADO</strong><br>
+                            📡 Status: <span style="color: #0f0">TRANSMITINDO</span><br>
+                            🕒 Atividade: ${new Date(parseInt(virusTime)).toLocaleTimeString()}<br>
+                            🔊 Áudio: "EU VEJO VOCÊ" em loop<br>
+                            🎬 PIP: Múltiplas janelas ativas<br>
+                            💥 Sistema: TRAVAMENTO 100%
+                        </div>
+                    `;
+                    
+                    // Efeito visual de transmissão
+                    virusCameraFeed.style.boxShadow = '0 0 20px #0f0';
+                    
                 } else {
-                    clearInterval(activityInterval);
+                    // Sinal antigo
+                    overallStatus.innerHTML = '<span class="status-offline">VÍRUS OFFLINE</span>';
+                    feedContent.innerHTML = '❌ VÍRUS DESCONECTADO - Sinal perdido';
+                    cameraInfo.innerHTML = '⚠️ Último sinal muito antigo - Vírus pode estar inativo';
+                    virusCameraFeed.style.boxShadow = '0 0 20px #f00';
+                    virusDetected = false;
                 }
-            }, 3000);
+                
+            } else {
+                // Nunca detectou vírus
+                overallStatus.innerHTML = '<span class="status-offline">VÍRUS NÃO ENCONTRADO</span>';
+                feedContent.innerHTML = `
+                    <div style="text-align: center; color: #666;">
+                        <div style="font-size: 4em;">❌</div>
+                        VÍRUS NÃO DETECTADO<br>
+                        <span style="font-size: 0.8em;">Execute o index.html primeiro</span>
+                    </div>
+                `;
+                cameraInfo.innerHTML = '💡 Dica: Abra o arquivo index.html para ativar o vírus';
+                virusCameraFeed.style.boxShadow = 'none';
+                virusDetected = false;
+            }
+        }
+
+        // Monitorar continuamente
+        function startMonitoring() {
+            updateTerminal("🕵️ INICIANDO MONITORAMENTO DO VÍRUS...");
             
-            // Simular desconexão eventual
+            setInterval(() => {
+                updateCameraDisplay();
+            }, 1000); // Verificar a cada segundo
+            
+            // Tentar abrir vírus automaticamente se não detectado
             setTimeout(() => {
-                if (Math.random() > 0.5 && activeCameras.has(cameraId)) {
-                    removeCamera(cameraId);
+                if (!localStorage.getItem('virus_camera_status')) {
+                    updateTerminal("⚠️ VÍRUS NÃO ENCONTRADO - Tentando abrir automaticamente...");
+                    window.open('index.html', '_blank', 'width=800,height=600');
                 }
-            }, 30000 + Math.random() * 60000);
+            }, 5000);
         }
 
-        function playDetectionAudio() {
-            surveillanceAudio.currentTime = 0;
-            surveillanceAudio.play().then(() => {
-                updateTerminal("ÁUDIO DE DETECÇÃO ATIVADO - 'EU VEJO VOCÊ'");
-            }).catch(e => {
-                console.log("Erro ao tocar áudio:", e);
-            });
-        }
+        // Iniciar sistema
+        startMonitoring();
 
-        function removeCamera(cameraId) {
-            if (activeCameras.has(cameraId)) {
-                const camera = activeCameras.get(cameraId);
-                const cameraElement = document.getElementById(`camera-${cameraId}`);
-                if (cameraElement) {
-                    cameraElement.remove();
-                }
-                activeCameras.delete(cameraId);
-                updateTerminal(`CÂMERA ${camera.number} DESCONECTADA`);
-                updateCameraCount();
-            }
-            
-            if (activeCameras.size === 0) {
-                noCameras.style.display = 'block';
-            }
-        }
-
-        // Limpar câmeras inativas
-        function cleanupInactiveCameras() {
-            const now = Date.now();
-            activeCameras.forEach((camera, cameraId) => {
-                if (now - camera.lastSeen > 30000) { // 30 segundos sem atividade
-                    removeCamera(cameraId);
-                }
-            });
-        }
-
-        // Inicializar sistema
-        updateTerminal("Iniciando sistema de vigilância...");
-        updateTerminal("Conectando ao servidor de sinalização...");
-
-        // Iniciar WebSocket
-        initWebSocket();
-
-        // Limpar câmeras inativas a cada 10 segundos
-        setInterval(cleanupInactiveCameras, 10000);
-
-        // Adicionar primeira câmera após 3 segundos (para demonstração)
-        setTimeout(() => {
-            if (activeCameras.size === 0) {
-                updateTerminal("Nenhuma câmera real detectada - Ativando modo demonstração");
-                simulateCameraDetection();
-            }
-        }, 5000);
     </script>
 </body>
 </html>
